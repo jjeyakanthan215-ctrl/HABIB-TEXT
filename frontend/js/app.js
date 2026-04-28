@@ -1143,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
         smartRepliesBar.appendChild(translateChip);
         smartRepliesBar.classList.remove('hidden');
     };
-
+ 
     if (aiAssistBtn) {
         aiAssistBtn.addEventListener('click', () => {
             if (smartRepliesBar && !smartRepliesBar.classList.contains('hidden')) {
