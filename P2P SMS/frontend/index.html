@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HABIB TEXT — Secure P2P Messenger</title>
+    <meta name="description" content="HABIB TEXT: Secure peer-to-peer messaging, file transfer, and video calls.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="manifest" href="/static/manifest.json">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+    <!-- Animated Background -->
+    <div class="background-mesh">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+        <canvas id="particles-canvas"></canvas>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast hidden">
+        <i class="ph ph-check-circle toast-icon"></i>
+        <span id="toast-msg">Message</span>
+    </div>
+
+    <div class="app-container glass-panel">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <button id="back-btn" class="icon-btn back-btn hidden" title="Go Back">
+                    <i class="ph ph-arrow-left"></i>
+                </button>
+                <h1><i class="ph ph-paper-plane-tilt"></i> HABIB TEXT</h1>
+            </div>
+            <div class="header-actions">
+                <button id="logout-btn" class="icon-btn hidden" title="Logout" style="color:var(--error);">
+                    <i class="ph ph-power"></i>
+                </button>
+                <button id="video-call-btn" class="icon-btn call-btn hidden" title="Start Call">
+                    <i class="ph ph-phone"></i>
+                </button>
+                <div class="status-indicator" id="connection-status">
+                    <span class="dot disconnected"></span>
+                    <span class="status-text">Offline</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hidden media elements -->
+        <audio id="remote-audio" autoplay hidden></audio>
+
+        <main class="app-content">
+            <!-- ── Screen 1: Login / Register ── -->
+            <section id="login-screen" class="screen active">
+                <div class="auth-card">
+                    <div class="auth-logo">
+                        <i class="ph ph-shield-check"></i>
+                    </div>
+                    <h2 id="auth-title">Welcome Back</h2>
+                    <p id="auth-subtitle" class="muted">Login to access your secure space.</p>
+
+                    <div class="input-group">
+                        <i class="ph ph-user input-icon"></i>
+                        <input type="text" id="auth-username" placeholder="Username" autocomplete="off" class="text-input">
+                    </div>
+                    <div class="input-group">
+                        <i class="ph ph-lock-simple input-icon"></i>
+                        <input type="password" id="auth-password" placeholder="Password" autocomplete="off" class="text-input">
+                    </div>
+
+                    <button id="auth-submit-btn" class="btn primary-btn full-width">
+                        <i class="ph ph-sign-in"></i> Login
+                    </button>
+                    <div id="login-error" class="error-msg"></div>
+                    <p class="auth-toggle-text" id="auth-toggle">Don't have an account? <span class="link">Register</span></p>
+                </div>
+            </section>
+
+            <!-- ── Screen 2: Dashboard ── -->
+            <section id="dashboard-screen" class="screen">
+                <div class="welcome-banner">
+                    <i class="ph ph-house-line"></i>
+                    <div>
+                        <h3 id="welcome-username">Welcome</h3>
+                        <p class="muted" style="font-size:0.8rem;">Choose how you want to connect</p>
+                    </div>
+                </div>
+
+                <div class="tab-bar">
+                    <button id="tab-host" class="tab-btn active-tab">
+                        <i class="ph ph-broadcast"></i> Host Space
+                    </button>
+                    <button id="tab-join" class="tab-btn">
+                        <i class="ph ph-link-simple"></i> Join Space
+                    </button>
+                </div>
+
+                <!-- Host Setup -->
+                <div class="card" id="host-setup">
+                    <h2><i class="ph ph-broadcast" style="color:var(--primary)"></i> Host a Private Space</h2>
+                    <p class="muted">Start a secure room with a custom name.</p>
+                    <div class="input-group" style="margin-top:16px">
+                        <i class="ph ph-text-t input-icon"></i>
+                        <input type="text" id="host-space-name" placeholder="Space Name (e.g. My Room)" autocomplete="off" class="text-input">
+                    </div>
+                    <div class="input-group">
+                        <i class="ph ph-key input-icon"></i>
+                        <input type="text" id="host-pin" maxlength="4" placeholder="Optional 4-Digit PIN" autocomplete="off" class="text-input">
+                    </div>
+                    <button id="start-host-btn" class="btn primary-btn full-width" style="margin-top:12px">
+                        <i class="ph ph-rocket-launch"></i> Start Hosting
+                    </button>
+                </div>
+
+                <!-- Host Waiting -->
+                <div class="card" id="host-waiting" style="display:none; text-align:center;">
+                    <h2>Your Space is Live</h2>
+                    <p class="muted">Share the QR or your username + PIN</p>
+                    <div class="qr-container">
+                        <img id="qr-code-img" src="" alt="QR Code">
+                    </div>
+                    <div class="pin-display">
+                        <span class="pin-label">Room PIN</span>
+                        <div class="pin-code" id="display-pin">----</div>
+                    </div>
+                    <p class="muted" style="margin-top:12px; font-size:0.85rem;">Hosting as <strong id="my-space-name" style="color:var(--accent)"></strong></p>
+                    <button id="stop-host-btn" class="btn" style="margin-top:16px; width:100%; background:rgba(255,50,50,0.1); border:1px solid rgba(255,50,50,0.3); color:var(--error);">
+                        <i class="ph ph-x-circle"></i> Stop Hosting
+                    </button>
+                </div>
+
+                <!-- Client Join -->
+                <div class="card" id="client-setup" style="display:none;">
+                    <h2><i class="ph ph-link-simple" style="color:var(--accent)"></i> Join a Space</h2>
+                    <p class="muted">Enter the space info to connect securely.</p>
+                    <div class="input-group" style="margin-top:16px">
+                        <i class="ph ph-users input-icon"></i>
+                        <input type="text" id="join-space-name" placeholder="Space Name" autocomplete="off" class="text-input">
+                    </div>
+                    <div class="input-group">
+                        <i class="ph ph-key input-icon"></i>
+                        <input type="text" id="join-pin" maxlength="4" placeholder="Host PIN" autocomplete="off" class="text-input">
+                    </div>
+                    <button id="connect-btn" class="btn primary-btn full-width" style="margin-top:12px">
+                        <i class="ph ph-plugs-connected"></i> Connect
+                    </button>
+                    <div id="auth-error" class="error-msg"></div>
+                </div>
+            </section>
+
+            <!-- ── Screen 3: Admin ── -->
+            <section id="admin-screen" class="screen">
+                <div class="admin-header-bar">
+                    <h2><i class="ph ph-shield-star" style="color:var(--primary)"></i> Admin Dashboard</h2>
+                    <p class="muted" style="font-size:0.85rem;">Live System Metrics</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <i class="ph ph-users" style="font-size:1.8rem; color:var(--accent)"></i>
+                        <h3 id="stat-total-users">0</h3>
+                        <p>Total Users</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="ph ph-house" style="font-size:1.8rem; color:var(--primary)"></i>
+                        <h3 id="stat-active-hosts">0</h3>
+                        <p>Active Spaces</p>
+                    </div>
+                    <div class="stat-card">
+                        <i class="ph ph-plugs-connected" style="font-size:1.8rem; color:var(--success)"></i>
+                        <h3 id="stat-total-connections">0</h3>
+                        <p>Connections</p>
+                    </div>
+                </div>
+
+                <div class="admin-grid">
+                    <div class="admin-panel">
+                        <h3><i class="ph ph-address-book"></i> Registered Users</h3>
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                </tr>
+                            </thead>
+                            <tbody id="admin-users-tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="admin-panel intercept-panel">
+                        <h3><i class="ph ph-warning-octagon" style="color:var(--error)"></i> <span style="color:var(--error)">Live Chat Intercept</span></h3>
+                        <div id="admin-chat-log" class="chat-log-terminal">
+                            <span style="color:#666">> Listening for private messages...</span><br>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="admin-panel" style="margin-top:16px">
+                    <h3><i class="ph ph-broadcast"></i> Active Hosted Spaces</h3>
+                    <ul id="admin-hosts-ul" class="hosts-list">
+                        <li class="muted-li">No active spaces.</li>
+                    </ul>
+                </div>
+
+                <button id="admin-enter-app-btn" class="btn full-width" style="margin-top:16px; background:rgba(255,255,255,0.08); border:1px solid var(--panel-border); color:white;">
+                    Continue to Chat <i class="ph ph-arrow-right"></i>
+                </button>
+            </section>
+
+            <!-- ── Screen 4: Chat ── -->
+            <section id="chat-screen" class="screen">
+                <div class="chat-container">
+                    <div class="messages-list" id="messages-list">
+                        <div class="message system">
+                            <i class="ph ph-lock-key" style="margin-right:4px"></i>
+                            End-to-end encrypted via WebRTC
+                        </div>
+                    </div>
+                    <!-- Smart Reply Chips -->
+                    <div id="smart-replies" class="smart-replies hidden"></div>
+                    <!-- Voice Recording Overlay -->
+                    <div id="voice-recording-bar" class="voice-recording-bar hidden">
+                        <div class="voice-rec-pulse"></div>
+                        <span class="voice-rec-label"><i class="ph ph-microphone"></i> Recording...</span>
+                        <span class="voice-rec-timer" id="voice-rec-timer">0:00</span>
+                        <span class="voice-rec-hint">Release to send</span>
+                    </div>
+
+                    <div class="input-area">
+                        <!-- Row 1: extra actions -->
+                        <div class="input-actions-row">
+                            <button id="vanish-mode-btn" class="action-chip" title="Toggle Vanish Mode">
+                                <i class="ph ph-ghost"></i>
+                                <span>Vanish</span>
+                            </button>
+                            <button id="file-btn" class="action-chip" title="Attach File">
+                                <i class="ph ph-paperclip"></i>
+                                <span>Attach</span>
+                            </button>
+                            <button id="ai-assist-btn" class="action-chip ai-chip" title="AI Smart Reply">
+                                <i class="ph ph-magic-wand"></i>
+                                <span>AI Reply</span>
+                            </button>
+                            <button id="e2ee-chat-verify-btn" class="action-chip e2ee-chip" title="Verify E2EE">
+                                <i class="ph ph-shield-check"></i>
+                                <span>Verify</span>
+                            </button>
+                        </div>
+                        <!-- Row 2: main bar -->
+                        <div class="input-main-row">
+                            <input type="file" id="file-input" style="display:none">
+                            <input type="text" id="message-input" placeholder="Message...">
+                            <button id="voice-note-btn" class="input-icon-btn mic-btn" title="Hold to Record Voice Note">
+                                <i class="ph ph-microphone"></i>
+                            </button>
+                            <button id="send-btn" class="input-icon-btn send-btn-main" title="Send">
+                                <i class="ph ph-paper-plane-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- ── Video Call Overlay ── -->
+    <div id="video-overlay" class="video-overlay hidden">
+        <video id="remote-video" class="remote-video" autoplay playsinline></video>
+        <video id="local-video" class="local-video" autoplay playsinline muted></video>
+        <div class="video-info-bar">
+            <span id="video-peer-name">Peer</span>
+            <span class="call-duration" id="call-timer">00:00</span>
+            <button id="e2ee-verify-btn" class="icon-btn" title="Verify Security" style="margin-left:auto; background:rgba(16,185,129,0.15); color:#10b981; border:1px solid rgba(16,185,129,0.3); width:34px; height:34px; font-size:0.95rem;">
+                <i class="ph ph-shield-check"></i>
+            </button>
+        </div>
+        <div class="video-controls">
+            <button id="mute-btn" class="vc-btn" title="Mute">
+                <i class="ph ph-microphone"></i>
+            </button>
+            <button id="cam-off-btn" class="vc-btn" title="Camera Off">
+                <i class="ph ph-video-camera"></i>
+            </button>
+            <button id="screen-share-btn" class="vc-btn" title="Share Screen">
+                <i class="ph ph-monitor-arrow-up"></i>
+            </button>
+            <button id="incall-chat-btn" class="vc-btn" title="Chat">
+                <i class="ph ph-chat-circle-dots"></i>
+            </button>
+            <button id="end-video-call-btn" class="vc-btn end-call-btn" title="End Call">
+                <i class="ph ph-phone-x"></i>
+            </button>
+        </div>
+
+        <!-- ── In-Call Chat Panel ── -->
+        <div id="incall-chat-panel" class="incall-chat-panel hidden">
+            <div class="incall-chat-header">
+                <span><i class="ph ph-chat-circle-dots"></i> In-Call Chat</span>
+                <button id="incall-chat-close" class="incall-close-btn" title="Close"><i class="ph ph-x"></i></button>
+            </div>
+            <div class="incall-messages" id="incall-messages"></div>
+            <div class="incall-input-row">
+                <input type="text" id="incall-message-input" placeholder="Type a message..." autocomplete="off">
+                <button id="incall-send-btn" class="vc-btn incall-send" title="Send">
+                    <i class="ph ph-paper-plane-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Call Type Chooser Modal ── -->
+    <div id="call-type-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="caller-avatar" style="background:linear-gradient(135deg,#8b5cf6,#06d6c7)">
+                <i class="ph ph-phone-call"></i>
+            </div>
+            <h3>Start a Call</h3>
+            <p>Choose your call type with <span id="call-type-peer-name">Peer</span>.</p>
+            <div class="modal-actions" style="flex-direction:column; gap:10px;">
+                <button id="start-audio-call-btn" class="btn" style="background:linear-gradient(135deg,#10b981,#059669); color:white; width:100%;">
+                    <i class="ph ph-phone"></i> Audio Call
+                </button>
+                <button id="start-video-call-btn" class="btn primary-btn" style="width:100%;">
+                    <i class="ph ph-video-camera"></i> Video Call
+                </button>
+                <button id="cancel-call-type-btn" class="btn" style="background:rgba(255,255,255,0.07); color:var(--text-muted); width:100%; border:1px solid var(--panel-border);">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Incoming Call Modal ── -->
+    <div id="call-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="caller-avatar">
+                <i class="ph ph-phone-incoming"></i>
+            </div>
+            <h3 id="incoming-call-title">Incoming Call</h3>
+            <p><span id="caller-name">Someone</span> is calling you.</p>
+            <div class="modal-actions">
+                <button id="accept-call-btn" class="btn accept-btn">
+                    <i class="ph ph-phone-incoming"></i> Accept
+                </button>
+                <button id="decline-call-btn" class="btn decline-btn">
+                    <i class="ph ph-phone-x"></i> Decline
+                </button>
+            </div>
+        </div>
+    </div> 
+
+    <!-- ── Emoji Picker ── -->
+    <div id="emoji-picker" class="emoji-picker hidden">
+        <span class="emoji-btn">👍</span>
+        <span class="emoji-btn">❤️</span>
+        <span class="emoji-btn">😂</span>
+        <span class="emoji-btn">🔥</span>
+        <span class="emoji-btn">😲</span>
+    </div>
+
+    <!-- ── E2EE Verification Modal ── -->
+    <div id="e2ee-modal" class="modal-overlay hidden">
+        <div class="modal-card" style="max-width:360px; text-align:center;">
+            <i class="ph ph-shield-check" style="font-size:2.5rem; color:#10b981;"></i>
+            <h3 style="margin:12px 0 4px">Connection Verified</h3>
+            <p style="font-size:0.82rem; opacity:0.6; margin-bottom:16px">Both peers should see the same pattern. If they match, your connection is secure.</p>
+            <canvas id="e2ee-canvas" width="200" height="200" style="border-radius:12px; border:2px solid rgba(16,185,129,0.4);"></canvas>
+            <p id="e2ee-hash-label" style="font-size:0.7rem; opacity:0.4; margin-top:10px; word-break:break-all;"></p>
+            <button id="e2ee-close-btn" class="btn full-width" style="margin-top:16px; background:rgba(255,255,255,0.08); color:white;">Close</button>
+        </div>
+    </div>
+    <script src="/static/js/webrtc.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>

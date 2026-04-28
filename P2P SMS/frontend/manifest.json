@@ -1,0 +1,16 @@
+{
+  "name": "HABIB TEXT",
+  "short_name": "HABIB TEXT",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080c14",
+  "theme_color": "#8b5cf6",
+  "description": "Secure P2P Messenger",
+  "icons": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/c/c2/GitHub_Invertocat_Logo.svg/512px-GitHub_Invertocat_Logo.svg.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

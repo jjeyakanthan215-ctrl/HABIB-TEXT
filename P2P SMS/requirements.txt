@@ -1,0 +1,26 @@
+# HABIB TEXT – Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Web framework
+fastapi==0.115.12
+
+# ASGI server (with WebSocket & HTTP/2 support)
+uvicorn[standard]==0.34.2
+
+# WebSocket library (used internally by FastAPI)
+websockets==15.0.1
+
+# Local network discovery via mDNS/Zeroconf
+zeroconf==0.146.0
+
+# QR code generation
+qrcode[pil]==8.2
+
+# HTML templating (used by FastAPI for serving index.html)
+jinja2==3.1.6
+
+# Multipart form handling (file uploads)
+python-multipart==0.0.20
+
+# Image processing (required by qrcode[pil])
+pillow==11.2.1
