@@ -1127,39 +1127,11 @@ body {
     border-radius: 60px;
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
-
-.vc-btn {
-    width: 54px;
-    height: 54px;
-    border-radius: 50%;
-    border: none;
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    font-size: 1.35rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.vc-btn:hover {
-    background: rgba(255, 255, 255, 0.22);
-    transform: scale(1.08);
-}
-
-.vc-btn.muted-active {
-    background: rgba(240, 74, 74, 0.3);
-    color: var(--error);
-}
-
-.end-call-btn {
-    background: var(--error) !important;
-    box-shadow: 0 4px 20px rgba(240, 74, 74, 0.5);
-}
-
-.end-call-btn:hover {
-    background: #c53030 !important;
+.vc-btn { 
+    width: 54px; height: 54px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.1); color: white;
+    font-size: 1.35rem; cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; justify-content: center;
 }
 
 /* ── Modal ── */
