@@ -541,11 +541,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let html = '';
         if (fileMeta.name.endsWith('_voice_note.webm')) {
+            const transcriptHtml = fileMeta.transcript ? `<div class="voice-transcript">AI: "${fileMeta.transcript}"</div>` : '';
             if (type === 'received' && fileBlob) {
                 const url = URL.createObjectURL(fileBlob);
-                html = `<i class="ph ph-microphone file-icon" style="color:var(--accent)"></i><div class="file-info"><span class="file-name">Voice Note</span><audio controls src="${url}" style="height:36px; margin-top:6px; max-width:200px;"></audio></div>`;
+                html = `<i class="ph ph-microphone file-icon" style="color:var(--accent)"></i><div class="file-info"><span class="file-name">Voice Note</span><audio controls src="${url}" style="height:36px; margin-top:6px; max-width:200px;"></audio>${transcriptHtml}</div>`;
             } else {
-                html = `<i class="ph ph-microphone file-icon" style="color:var(--accent)"></i><div class="file-info"><span class="file-name">Voice Note</span><span class="file-size" style="margin-top:4px">Sent ✓</span></div>`;
+                html = `<i class="ph ph-microphone file-icon" style="color:var(--accent)"></i><div class="file-info"><span class="file-name">Voice Note</span><span class="file-size" style="margin-top:4px">Sent ✓</span>${transcriptHtml}</div>`;
             }
         } else {
             let icon = 'ph-file';
@@ -692,6 +693,8 @@ document.addEventListener('DOMContentLoaded', () => {
     let audioChunks       = [];
     let voiceTimerInterval = null;
     let voiceSeconds      = 0;
+    let speechRec         = null;
+    let currentTranscript = '';
 
     const updateVoiceTimer = () => {
         const m = String(Math.floor(voiceSeconds / 60)).padStart(1,'0');
@@ -724,8 +727,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (audioBlob.size > 0 && p2p?.dataChannel?.readyState === 'open') {
                     const fileName = `note_${Date.now()}_voice_note.webm`;
                     const msgId = generateId();
-                    p2p.sendFileMetadata({ name: fileName, size: audioBlob.size, fileType: audioBlob.type, vanish: vanishMode, id: msgId });
-                    addFileMessage({ name: fileName, size: audioBlob.size, fileType: audioBlob.type }, 'sent', null, vanishMode, msgId);
+                    p2p.sendFileMetadata({ name: fileName, size: audioBlob.size, fileType: audioBlob.type, vanish: vanishMode, id: msgId, transcript: currentTranscript });
+                    addFileMessage({ name: fileName, size: audioBlob.size, fileType: audioBlob.type, transcript: currentTranscript }, 'sent', null, vanishMode, msgId);
 
                     const reader = new FileReader();
                     reader.onload = ev => {
@@ -749,6 +752,23 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             mediaRecorder.start();
+            // Speech Recognition Setup
+            currentTranscript = '';
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (SpeechRecognition) {
+                speechRec = new SpeechRecognition();
+                speechRec.continuous = true;
+                speechRec.interimResults = true;
+                speechRec.onresult = (e) => {
+                    let finalTrans = '';
+                    for (let i = 0; i < e.results.length; ++i) {
+                        if (e.results[i].isFinal) finalTrans += e.results[i][0].transcript + ' ';
+                    }
+                    if (finalTrans) currentTranscript = finalTrans.trim();
+                };
+                speechRec.start();
+            }
+
             // Show recording bar + start timer
             voiceSeconds = 0;
             if (voiceRecBar) voiceRecBar.classList.remove('hidden');
@@ -764,6 +784,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const stopRecording = () => {
         if (mediaRecorder && mediaRecorder.state !== 'inactive') {
             mediaRecorder.stop();
+        }
+        if (speechRec) {
+            speechRec.stop();
+            speechRec = null;
         }
     };
 
