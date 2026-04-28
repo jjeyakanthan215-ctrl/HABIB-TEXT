@@ -509,6 +509,7 @@ body {
     flex-direction: column;
     gap: 8px;
     padding-top: 10px;
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
     border-top: 1px solid var(--panel-border);
     flex-shrink: 0;
 }

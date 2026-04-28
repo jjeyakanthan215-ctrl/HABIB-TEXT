@@ -72,6 +72,42 @@ document.addEventListener('DOMContentLoaded', () => {
         history.back();
     });
 
+    // ── Logout ──
+    const logoutBtn = document.getElementById('logout-btn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+            if (typeof p2p !== 'undefined' && p2p) {
+                if (p2p.ws) p2p.ws.close();
+                p2p = null;
+                if (typeof endVideoCall === 'function') endVideoCall();
+            }
+            const hw = document.getElementById('host-waiting');
+            if (hw && hw.style.display === 'block') {
+                if (typeof stopHostingLogic === 'function') stopHostingLogic();
+            }
+            
+            // Disconnect admin websocket if present
+            if (typeof adminWs !== 'undefined' && adminWs) {
+                adminWs.close();
+                adminWs = null;
+            }
+            if (typeof adminStatsInterval !== 'undefined' && adminStatsInterval) {
+                clearInterval(adminStatsInterval);
+                adminStatsInterval = null;
+            }
+
+            myUsername = '';
+            const authPasswordInput = document.getElementById('auth-password');
+            if (authPasswordInput) authPasswordInput.value = '';
+            
+            showScreen(loginScreen, false);
+            logoutBtn.classList.add('hidden');
+            showToast('Logged out successfully.');
+            history.replaceState({ depth: 0 }, '', location.href);
+            screenHistory = [];
+        });
+    }
+
     // ── Toast ──
     function showToast(msg, type = 'success') {
         const toast = document.getElementById('toast');
@@ -212,6 +248,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         showScreen(dashboardScreen, false);
                     }
+                    const lBtn = document.getElementById('logout-btn');
+                    if (lBtn) lBtn.classList.remove('hidden');
                 }
             } else {
                 loginError.textContent = data.message || 'Authentication failed.';
