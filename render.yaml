@@ -10,8 +10,4 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.0"
       - key: DB_PATH
-        value: /data/users.db   # Persistent disk path
-    disk:
-      name: habib-text-db
-      mountPath: /data
-      sizeGB: 1
+        value: users.db   # Ephemeral disk path for free tier
