@@ -15,6 +15,10 @@
 <body>
     <!-- Animated Background -->
     <div class="background-mesh">
+        <video autoplay loop muted playsinline id="bg-video">
+            <source src="https://cdn.pixabay.com/video/2021/08/04/83897-584704049_tiny.mp4" type="video/mp4">
+        </video>
+        <div class="video-overlay-gradient"></div>
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
         <div class="blob blob-3"></div>
@@ -185,6 +189,7 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Username</th>
+                                    <th style="text-align:right">Action</th>
                                 </tr>
                             </thead>
                             <tbody id="admin-users-tbody"></tbody>
@@ -219,6 +224,15 @@
                             End-to-end encrypted via WebRTC
                         </div>
                     </div>
+                    <!-- Typing Indicator -->
+                    <div id="typing-indicator" class="typing-indicator hidden">
+                        <span>Peer is typing</span>
+                        <div class="typing-dots">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                    </div>
                     <!-- Smart Reply Chips -->
                     <div id="smart-replies" class="smart-replies hidden"></div>
                     <!-- Voice Recording Overlay -->
@@ -230,6 +244,17 @@
                     </div>
 
                     <div class="input-area">
+                        <!-- File Upload Progress -->
+                        <div id="file-upload-progress" class="file-upload-progress hidden">
+                            <div class="progress-label">
+                                <span id="progress-filename" class="progress-fn">file.pdf</span>
+                                <span id="progress-speed" class="progress-spd">0 KB/s</span>
+                            </div>
+                            <div class="progress-bar-track">
+                                <div id="progress-bar-fill" class="progress-bar-fill"></div>
+                            </div>
+                            <span id="progress-percent" class="progress-pct">0%</span>
+                        </div>
                         <!-- Row 1: extra actions -->
                         <div class="input-actions-row">
                             <button id="vanish-mode-btn" class="action-chip" title="Toggle Vanish Mode">

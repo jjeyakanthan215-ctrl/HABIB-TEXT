@@ -1,5 +1,6 @@
 import sqlite3
 import hashlib
+import bcrypt
 import os
 
 # On Render, use /data for persistent storage (set DB_PATH env var in Render dashboard).
@@ -41,7 +42,9 @@ def init_db():
     create_user('HABIB_Admin', 'Habib@215', role='admin')
 
 def hash_password(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+    # Use bcrypt to hash the password securely
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
 
 def create_user(username: str, password: str, role: str = 'user') -> bool:
     """Create a new user. Returns True if successful, False if username exists."""
@@ -70,8 +73,21 @@ def verify_user(username: str, password: str):
     row = cursor.fetchone()
     conn.close()
 
-    if row and row['password_hash'] == hash_password(password):
-        return row['role']
+    if row:
+        stored_hash = row['password_hash']
+        # Check for legacy SHA-256 hash (length 64, hex)
+        if len(stored_hash) == 64 and not stored_hash.startswith('$'):
+            legacy_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+            if stored_hash == legacy_hash:
+                # Optionally, we could rehash and update the db here, but keeping it simple
+                return row['role']
+        else:
+            # Bcrypt verify
+            try:
+                if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
+                    return row['role']
+            except ValueError:
+                pass
     return None
 
 def get_total_users() -> int:
@@ -91,6 +107,19 @@ def get_all_users():
     rows = cursor.fetchall()
     conn.close()
     return [{"id": r['id'], "username": r['username'], "role": r['role']} for r in rows]
+
+def delete_user(username: str) -> bool:
+    """Permanently delete a registered user. The admin account is protected."""
+    if username == 'HABIB_Admin':
+        return False
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('DELETE FROM users WHERE username = ?', (username,))
+        conn.commit()
+        return cursor.rowcount > 0
+    finally:
+        conn.close()
 
 # Initialize the database on module import
 init_db()

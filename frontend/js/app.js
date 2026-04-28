@@ -297,15 +297,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 ul.innerHTML = data.active_hosts_list.length === 0
                     ? '<li class="muted-li">No active spaces.</li>'
                     : data.active_hosts_list.map(h =>
-                        `<li><i class="ph ph-shield-check" style="color:var(--success)"></i> ${h.hostname} <span style="opacity:0.5; font-size:0.8em;">(${h.clients} connected)</span></li>`
+                        `<li style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
+                            <span><i class="ph ph-shield-check" style="color:var(--success)"></i> <strong>${h.hostname}</strong> <span style="opacity:0.5;font-size:0.8em">(${h.clients} connected)</span></span>
+                            <button onclick="kickUserFromRoom('${h.hostname}','${h.hostname}')" class="admin-kick-btn"><i class="ph ph-user-minus"></i> Kick</button>
+                        </li>`
                       ).join('');
 
                 const tbody = document.getElementById('admin-users-tbody');
                 tbody.innerHTML = (data.user_list || []).map(u =>
-                    `<tr><td style="padding:7px 0">${u.id}</td><td style="padding:7px 0">${u.username}</td></tr>`
+                    `<tr>
+                        <td style="padding:7px 0">${u.id}</td>
+                        <td style="padding:7px 0">${u.username}</td>
+                        <td style="padding:7px 0;text-align:right">
+                            ${u.username !== 'HABIB_Admin' ? `<button onclick="deleteRegisteredUser('${u.username}')" class="admin-delete-btn"><i class="ph ph-trash"></i></button>` : '<span style="opacity:0.3;font-size:0.8em">Protected</span>'}
+                        </td>
+                    </tr>`
                 ).join('');
             }
         } catch (e) { console.error('Admin stats error', e); }
+    };
+
+    window.kickUserFromRoom = async (spaceName, username) => {
+        if (!confirm(`Kick "${username}" from "${spaceName}"?`)) return;
+        const res = await fetch('/api/admin/kick', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ admin_username: myUsername, target_username: username, space_name: spaceName })
+        });
+        const data = await res.json();
+        showToast(data.status === 'success' ? `Kicked ${username}!` : data.message, data.status === 'success' ? 'success' : 'error');
+        fetchAdminStats();
+    };
+
+    window.deleteRegisteredUser = async (username) => {
+        if (!confirm(`Permanently delete user "${username}"? This cannot be undone.`)) return;
+        const res = await fetch('/api/admin/delete_user', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ admin_username: myUsername, target_username: username })
+        });
+        const data = await res.json();
+        showToast(data.status === 'success' ? `Deleted ${username}!` : data.message, data.status === 'success' ? 'success' : 'error');
+        fetchAdminStats();
     };
 
     document.getElementById('admin-enter-app-btn')?.addEventListener('click', () => {
@@ -313,6 +346,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (adminWs) adminWs.close();
         showScreen(dashboardScreen);
     });
+
 
     // ── Dashboard Tabs ──
     const tabHost     = document.getElementById('tab-host');
@@ -440,8 +474,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 goBackUI();
             }
         } else if (state === 'failed_auth') {
-            joinError.textContent = 'Invalid PIN or host not found.';
+            if (p2p?.authReason === 'full') {
+                joinError.textContent = 'Room is full! Please use a different space name.';
+            } else {
+                joinError.textContent = 'Invalid PIN or host not found.';
+            }
             document.getElementById('join-pin').value = '';
+        } else if (state === 'kicked') {
+            showToast('You have been removed by the Admin.', 'error');
+            if (p2p && p2p.ws) { p2p.ws.close(); p2p = null; }
+            if (chatScreen.classList.contains('active')) goBackUI();
         }
     };
 
@@ -634,6 +676,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 addFileMessage(receivingFileMeta, 'received', blob, receivingFileMeta.vanish, receivingFileMeta.id);
                 receivingFileMeta = null; receiveBuffer = [];
             }
+        } else if (msg.type === 'typing') {
+            const ind = document.getElementById('typing-indicator');
+            if (ind) {
+                ind.classList.remove('hidden');
+                clearTimeout(ind.typingTimeout);
+                ind.typingTimeout = setTimeout(() => ind.classList.add('hidden'), 3000);
+            }
         }
     };
 
@@ -655,8 +704,36 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     messageInput.addEventListener('keypress', e => { if (e.key === 'Enter') sendBtn.click(); });
 
+    let typingTimer;
+    messageInput.addEventListener('input', () => {
+        if (p2p?.dataChannel?.readyState === 'open' && !typingTimer) {
+            p2p.send({ type: 'typing' });
+            typingTimer = setTimeout(() => { typingTimer = null; }, 2000);
+        }
+    });
+
     const fileBtn   = document.getElementById('file-btn');
     const fileInput = document.getElementById('file-input');
+    const uploadProgressEl  = document.getElementById('file-upload-progress');
+    const progressBarFill   = document.getElementById('progress-bar-fill');
+    const progressPercent   = document.getElementById('progress-percent');
+    const progressFilename  = document.getElementById('progress-filename');
+    const progressSpeed     = document.getElementById('progress-speed');
+
+    const updateUploadProgress = (sent, total, startTime, filename) => {
+        const pct = Math.round((sent / total) * 100);
+        const elapsed = (Date.now() - startTime) / 1000 || 0.001;
+        const kbps = ((sent / 1024) / elapsed).toFixed(1);
+        if (uploadProgressEl) uploadProgressEl.classList.remove('hidden');
+        if (progressBarFill)  progressBarFill.style.width = pct + '%';
+        if (progressPercent)  progressPercent.textContent = pct + '%';
+        if (progressFilename) progressFilename.textContent = filename;
+        if (progressSpeed)    progressSpeed.textContent = kbps + ' KB/s';
+        if (pct >= 100) {
+            setTimeout(() => { if (uploadProgressEl) uploadProgressEl.classList.add('hidden'); }, 1500);
+        }
+    };
+
     fileBtn.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', e => {
         const file = e.target.files[0];
@@ -669,6 +746,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const buf = ev.target.result;
             const CHUNK = 16384;
             let offset = 0;
+            const startTime = Date.now();
             const send = () => {
                 while (offset < buf.byteLength) {
                     if (p2p.dataChannel.bufferedAmount > p2p.dataChannel.bufferedAmountLowThreshold) {
@@ -677,6 +755,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                     p2p.sendFileData(buf.slice(offset, offset + CHUNK));
                     offset += CHUNK;
+                    updateUploadProgress(Math.min(offset, buf.byteLength), buf.byteLength, startTime, file.name);
                 }
             };
             send();

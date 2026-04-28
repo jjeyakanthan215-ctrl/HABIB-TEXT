@@ -1457,3 +1457,114 @@ body {
         opacity: 1;
     }
 }
+
+/* --- NEW UI CSS --- */
+#bg-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    z-index: 0;
+    transform: translateX(-50%) translateY(-50%);
+    object-fit: cover;
+    opacity: 0.25;
+}
+
+.video-overlay-gradient {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: linear-gradient(135deg, rgba(15,23,42,0.85) 0%, rgba(15,23,42,0.4) 100%);
+    z-index: 1;
+}
+
+.background-mesh .blob, .background-mesh canvas {
+    z-index: 2;
+}
+
+.typing-indicator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-style: italic;
+    background: rgba(255,255,255,0.05);
+    border-radius: 20px;
+    width: fit-content;
+    margin-top: 10px;
+}
+
+.typing-indicator.hidden {
+    display: none !important;
+}
+
+.typing-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.typing-dots .dot {
+    width: 6px;
+    height: 6px;
+    background-color: var(--text-muted);
+    border-radius: 50%;
+    animation: typing 1.4s infinite ease-in-out both;
+}
+
+.typing-dots .dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dots .dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+}
+
+/* ── File Upload Progress Bar ── */
+.file-upload-progress {
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.progress-label { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text-muted); }
+.progress-fn { max-width: 70%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.progress-spd { color: var(--accent); font-weight: 600; }
+.progress-bar-track {
+    width: 100%; height: 6px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 99px; overflow: hidden;
+}
+.progress-bar-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, var(--primary), #06d6c7);
+    border-radius: 99px;
+    transition: width 0.25s ease;
+}
+.progress-pct { font-size: 0.75rem; color: var(--text-light); text-align: right; }
+
+/* ── Admin Action Buttons ── */
+.admin-kick-btn {
+    background: rgba(240,74,74,0.12);
+    border: 1px solid rgba(240,74,74,0.3);
+    color: var(--error); border-radius: 8px;
+    padding: 4px 10px; font-size: 0.78rem;
+    cursor: pointer; transition: background 0.2s, transform 0.15s;
+    white-space: nowrap;
+}
+.admin-kick-btn:hover { background: rgba(240,74,74,0.28); transform: scale(1.04); }
+.admin-delete-btn {
+    background: rgba(240,74,74,0.1);
+    border: 1px solid rgba(240,74,74,0.25);
+    color: var(--error); border-radius: 8px;
+    padding: 4px 8px; font-size: 0.85rem;
+    cursor: pointer; transition: background 0.2s, transform 0.15s;
+}
+.admin-delete-btn:hover { background: rgba(240,74,74,0.25); transform: scale(1.05); }

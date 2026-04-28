@@ -68,8 +68,14 @@ class P2PConnection {
                     break;
                     
                 case 'auth_fail':
-                    console.error("Invalid PIN");
+                    console.error("Authentication failed:", message.reason || "Invalid PIN");
+                    this.authReason = message.reason;
                     this.onConnectionStateChange('failed_auth');
+                    break;
+
+                case 'kicked':
+                    console.warn("You have been kicked by the admin.");
+                    this.onConnectionStateChange('kicked');
                     break;
 
                 case 'offer':

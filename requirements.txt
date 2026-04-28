@@ -24,3 +24,6 @@ python-multipart==0.0.20
 
 # Image processing (required by qrcode[pil])
 pillow==11.2.1
+
+# Secure password hashing
+bcrypt==4.1.2
