@@ -78,7 +78,7 @@ class P2PConnection {
                     this.onConnectionStateChange('kicked');
                     break;
 
-                case 'offer':
+                case 'offer': {
                     console.log("Received offer");
                     if (!this.peerConnection) this.initializePeerConnection();
                     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(message.data));
@@ -86,6 +86,7 @@ class P2PConnection {
                     await this.peerConnection.setLocalDescription(answer);
                     this.sendSignalingMessage('answer', answer, message.sender);
                     break;
+                }
 
                 case 'answer':
                     console.log("Received answer");
