@@ -102,6 +102,12 @@ async def get_sw():
     return FileResponse("frontend/sw.js", media_type="application/javascript")
 
 
+@app.get("/offline.html", response_class=HTMLResponse)
+async def get_offline(request: Request):
+    return templates.TemplateResponse(request=request, name="offline.html", context={})
+
+
+
 @app.post("/api/auth/register")
 async def register_user(data: AuthData):
     if create_user(data.username, data.password):
