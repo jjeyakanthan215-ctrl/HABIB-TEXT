@@ -28,6 +28,16 @@ def init_db():
             role TEXT DEFAULT 'user'
         )
     ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS offline_messages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            recipient_username TEXT NOT NULL,
+            sender_username TEXT NOT NULL,
+            space_name TEXT NOT NULL,
+            payload TEXT NOT NULL,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
     # Migration: add role column if upgrading from an older DB schema
     try:
         cursor.execute("ALTER TABLE users ADD COLUMN role TEXT DEFAULT 'user'")
@@ -123,3 +133,43 @@ def delete_user(username: str) -> bool:
         conn.close()
 
 # database.py is now just a library, init_db() should be called by the application startup.
+
+def store_offline_message(recipient: str, sender: str, space_name: str, payload: str) -> bool:
+    """Store an encrypted message for an offline user."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            'INSERT INTO offline_messages (recipient_username, sender_username, space_name, payload) VALUES (?, ?, ?, ?)',
+            (recipient, sender, space_name, payload)
+        )
+        conn.commit()
+        return True
+    except Exception as e:
+        print(f"Error storing offline message: {e}")
+        return False
+    finally:
+        conn.close()
+
+def get_offline_messages(username: str):
+    """Retrieve all queued messages for a user."""
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute(
+        'SELECT id, sender_username, space_name, payload, timestamp FROM offline_messages WHERE recipient_username = ? ORDER BY timestamp ASC',
+        (username,)
+    )
+    rows = cursor.fetchall()
+    conn.close()
+    return [{"id": r['id'], "sender": r['sender_username'], "space_name": r['space_name'], "payload": r['payload'], "timestamp": r['timestamp']} for r in rows]
+
+def delete_offline_messages(username: str) -> bool:
+    """Delete all queued messages for a user after they have been retrieved."""
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute('DELETE FROM offline_messages WHERE recipient_username = ?', (username,))
+        conn.commit()
+        return True
+    finally:
+        conn.close()

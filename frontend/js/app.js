@@ -399,16 +399,67 @@ const HABIB = {
     chat: {
         sendMessage() {
             const text = HABIB.elements.messageInput.value.trim();
-            if (text && HABIB.state.p2p?.isConnected()) {
+            if (text) {
                 const msgId = HABIB.utils.generateId();
-                HABIB.state.p2p.send({ type: 'text', content: text, senderName: HABIB.state.myUsername, vanish: HABIB.state.vanishMode, id: msgId });
-                if (HABIB.state.p2p.ws?.readyState === WebSocket.OPEN) {
-                    HABIB.state.p2p.ws.send(JSON.stringify({ type: 'admin_chat_log', room: HABIB.state.activeRoomName, sender: HABIB.state.myUsername, content: text }));
+                if (HABIB.state.p2p?.isConnected()) {
+                    HABIB.state.p2p.send({ type: 'text', content: text, senderName: HABIB.state.myUsername, vanish: HABIB.state.vanishMode, id: msgId });
+                    if (HABIB.state.p2p.ws?.readyState === WebSocket.OPEN) {
+                        HABIB.state.p2p.ws.send(JSON.stringify({ type: 'admin_chat_log', room: HABIB.state.activeRoomName, sender: HABIB.state.myUsername, content: text }));
+                    }
+                    this.addMessage(text, 'sent', '', HABIB.state.vanishMode, msgId);
+                    HABIB.elements.messageInput.value = '';
+                } else {
+                    this.sendOfflineMessage(text, msgId);
                 }
-                this.addMessage(text, 'sent', '', HABIB.state.vanishMode, msgId);
-                HABIB.elements.messageInput.value = '';
             }
         },
+
+        async sendOfflineMessage(text, msgId) {
+            const recipient = HABIB.state.p2p?.peerName || HABIB.state.activeRoomName;
+            if (!recipient) return;
+            
+            this.addMessage(text, 'sent', '', HABIB.state.vanishMode, msgId);
+            const msgDiv = document.querySelector(`.message[data-id="${msgId}"]`);
+            if (msgDiv) msgDiv.style.opacity = '0.6';
+            
+            try {
+                const res = await fetch('/api/messages/offline', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        recipient_username: recipient,
+                        sender_username: HABIB.state.myUsername,
+                        space_name: HABIB.state.activeRoomName || 'Direct',
+                        payload: text
+                    })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    HABIB.ui.showToast('Peer offline. Message stored in server queue.', 'warn');
+                } else {
+                    HABIB.ui.showToast('Failed to queue offline message.', 'error');
+                }
+            } catch (err) {
+                HABIB.ui.showToast('Network error while queuing message.', 'error');
+            }
+            HABIB.elements.messageInput.value = '';
+        },
+
+        async fetchOfflineMessages() {
+            try {
+                const res = await fetch(`/api/messages/offline?username=${encodeURIComponent(HABIB.state.myUsername)}`);
+                const data = await res.json();
+                if (data.status === 'success' && data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        this.addMessage(msg.payload, 'received', msg.sender + ' (Offline)');
+                    });
+                    HABIB.ui.showToast(`Received ${data.messages.length} offline messages!`, 'success');
+                }
+            } catch (err) {
+                console.error('Failed to fetch offline messages', err);
+            }
+        },
+
 
         handleTyping() {
             if (HABIB.state.p2p?.isConnected() && !this.typingTimer) {
@@ -681,6 +732,7 @@ const HABIB = {
                 e.videoCallBtn.classList.remove('hidden');
                 if (data?.username) this.addMessage(`${data.username} joined the room. 🎉`, 'system');
                 this.startPingLoop();
+                this.fetchOfflineMessages();
             } else if (state === 'peer_joining') {
                 if (data?.username) this.addMessage(`${data.username} is connecting...`, 'system');
             } else if (state === 'peer_left') {

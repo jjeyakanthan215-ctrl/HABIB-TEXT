@@ -10,7 +10,7 @@ import os
 from contextlib import asynccontextmanager
 from discovery import MDNSService
 from security import generate_qr_base64
-from database import init_db, create_user, verify_user, get_total_users, get_all_users, delete_user
+from database import init_db, create_user, verify_user, get_total_users, get_all_users, delete_user, store_offline_message, get_offline_messages, delete_offline_messages
 from connection_manager import manager
 
 logger = logging.getLogger(__name__)
@@ -63,6 +63,13 @@ class AdminBroadcast(BaseModel):
     message: str
 
 
+class OfflineMessage(BaseModel):
+    recipient_username: str
+    sender_username: str
+    space_name: str
+    payload: str
+
+
 # Setup static files and templates
 os.makedirs("frontend", exist_ok=True)
 app.mount("/static", StaticFiles(directory="frontend"), name="static")
@@ -108,6 +115,21 @@ async def login_user(data: AuthData):
     if role:
         return {"status": "success", "role": role}
     return {"status": "error", "message": "Invalid credentials"}
+
+
+@app.post("/api/messages/offline")
+async def post_offline_message(data: OfflineMessage):
+    if store_offline_message(data.recipient_username, data.sender_username, data.space_name, data.payload):
+        return {"status": "success"}
+    return {"status": "error", "message": "Failed to store message"}
+
+
+@app.get("/api/messages/offline")
+async def fetch_offline_messages(username: str):
+    messages = get_offline_messages(username)
+    if messages:
+        delete_offline_messages(username)
+    return {"status": "success", "messages": messages}
 
 
 @app.get("/api/admin/stats")
