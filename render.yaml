@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: habib-text
+    name: habib
     env: python
     region: singapore
     plan: free
