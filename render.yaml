@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: habib
+    name: esctrix
     env: python
     region: singapore
     plan: free

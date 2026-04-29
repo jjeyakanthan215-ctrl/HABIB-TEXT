@@ -1,9 +1,9 @@
 /**
- * HABIB TEXT — Core Application Logic
+ * ESCTRIX — Core Application Logic
  * Refactored for modularity and performance.
  */
 
-const HABIB = {
+const ESCTRIX = {
     // --- State Management ---
     state: {
         myUsername: '',
@@ -38,7 +38,7 @@ const HABIB = {
         this.bindEvents();
         this.initPWA();
         this.initHistory();
-        console.log('🚀 HABIB TEXT Initialized');
+        console.log('🚀 ESCTRIX Initialized');
     },
 
     cacheElements() {
@@ -164,8 +164,8 @@ const HABIB = {
                 current.classList.add('slide-out-left');
                 setTimeout(() => current.classList.remove('active', 'slide-out-left'), 380);
                 if (pushHistory) {
-                    HABIB.state.screenHistory.push(current);
-                    history.pushState({ depth: HABIB.state.screenHistory.length }, '', location.href);
+                    ESCTRIX.state.screenHistory.push(current);
+                    history.pushState({ depth: ESCTRIX.state.screenHistory.length }, '', location.href);
                 }
             }
             next.classList.add('active');
@@ -173,8 +173,8 @@ const HABIB = {
         },
 
         goBack() {
-            if (HABIB.state.screenHistory.length === 0) return;
-            const prev = HABIB.state.screenHistory.pop();
+            if (ESCTRIX.state.screenHistory.length === 0) return;
+            const prev = ESCTRIX.state.screenHistory.pop();
             const current = document.querySelector('.screen.active');
             if (current) {
                 current.classList.remove('active');
@@ -186,25 +186,25 @@ const HABIB = {
         },
 
         updateBackBtn() {
-            if (HABIB.state.screenHistory.length > 0) {
-                HABIB.elements.backBtn.classList.remove('hidden');
+            if (ESCTRIX.state.screenHistory.length > 0) {
+                ESCTRIX.elements.backBtn.classList.remove('hidden');
             } else {
-                HABIB.elements.backBtn.classList.add('hidden');
+                ESCTRIX.elements.backBtn.classList.add('hidden');
             }
         },
 
         handlePopState() {
-            const hw = HABIB.elements.hostWaiting;
+            const hw = ESCTRIX.elements.hostWaiting;
             if (hw && hw.style.display === 'block') {
-                HABIB.dashboard.stopHosting();
-            } else if (HABIB.elements.chatScreen.classList.contains('active')) {
-                if (HABIB.state.p2p) {
-                    HABIB.state.p2p.disconnect();
-                    HABIB.state.p2p = null;
+                ESCTRIX.dashboard.stopHosting();
+            } else if (ESCTRIX.elements.chatScreen.classList.contains('active')) {
+                if (ESCTRIX.state.p2p) {
+                    ESCTRIX.state.p2p.disconnect();
+                    ESCTRIX.state.p2p = null;
                 }
-                HABIB.call.end();
+                ESCTRIX.call.end();
                 this.goBack();
-            } else if (HABIB.state.screenHistory.length > 0) {
+            } else if (ESCTRIX.state.screenHistory.length > 0) {
                 this.goBack();
             }
         }
@@ -213,37 +213,37 @@ const HABIB = {
     // --- Auth Module ---
     auth: {
         toggleMode() {
-            HABIB.state.isLoginMode = !HABIB.state.isLoginMode;
-            HABIB.elements.loginError.textContent = '';
-            HABIB.elements.authUsername.value = '';
-            HABIB.elements.authPassword.value = '';
-            const e = HABIB.elements;
-            if (HABIB.state.isLoginMode) {
+            ESCTRIX.state.isLoginMode = !ESCTRIX.state.isLoginMode;
+            ESCTRIX.elements.loginError.textContent = '';
+            ESCTRIX.elements.authUsername.value = '';
+            ESCTRIX.elements.authPassword.value = '';
+            const e = ESCTRIX.elements;
+            if (ESCTRIX.state.isLoginMode) {
                 e.authTitle.textContent = 'Welcome Back';
                 e.authSubtitle.textContent = 'Login to access your secure space.';
                 e.authSubmitBtn.innerHTML = '<i class="ph ph-sign-in"></i> Login';
                 e.authToggle.innerHTML = "Don't have an account? <span class='link'>Register</span>";
             } else {
                 e.authTitle.textContent = 'Create Account';
-                e.authSubtitle.textContent = 'Join HABIB TEXT for secure P2P messaging.';
+                e.authSubtitle.textContent = 'Join ESCTRIX for secure P2P messaging.';
                 e.authSubmitBtn.innerHTML = '<i class="ph ph-user-plus"></i> Register';
                 e.authToggle.innerHTML = "Already have an account? <span class='link'>Login</span>";
             }
         },
 
         async submit() {
-            const username = HABIB.elements.authUsername.value.trim();
-            const password = HABIB.elements.authPassword.value.trim();
+            const username = ESCTRIX.elements.authUsername.value.trim();
+            const password = ESCTRIX.elements.authPassword.value.trim();
 
             if (!username || !password) {
-                HABIB.elements.loginError.textContent = 'Please fill in both fields.';
+                ESCTRIX.elements.loginError.textContent = 'Please fill in both fields.';
                 return;
             }
 
-            HABIB.elements.loginError.textContent = 'Please wait...';
-            HABIB.elements.authSubmitBtn.disabled = true;
+            ESCTRIX.elements.loginError.textContent = 'Please wait...';
+            ESCTRIX.elements.authSubmitBtn.disabled = true;
 
-            const endpoint = HABIB.state.isLoginMode ? '/api/auth/login' : '/api/auth/register';
+            const endpoint = ESCTRIX.state.isLoginMode ? '/api/auth/login' : '/api/auth/register';
 
             try {
                 const res = await fetch(endpoint, {
@@ -254,56 +254,56 @@ const HABIB = {
                 const data = await res.json();
 
                 if (data.status === 'success') {
-                    HABIB.elements.loginError.textContent = '';
-                    if (!HABIB.state.isLoginMode) {
-                        HABIB.ui.showToast('Account created! Please log in.');
+                    ESCTRIX.elements.loginError.textContent = '';
+                    if (!ESCTRIX.state.isLoginMode) {
+                        ESCTRIX.ui.showToast('Account created! Please log in.');
                         this.toggleMode();
                     } else {
-                        HABIB.state.myUsername = username;
-                        HABIB.state.myPassword = password;
-                        HABIB.elements.welcomeUsername.textContent = `Hello, ${username} 👋`;
-                        HABIB.state.screenHistory = [];
+                        ESCTRIX.state.myUsername = username;
+                        ESCTRIX.state.myPassword = password;
+                        ESCTRIX.elements.welcomeUsername.textContent = `Hello, ${username} 👋`;
+                        ESCTRIX.state.screenHistory = [];
                         if (data.role === 'admin') {
-                            HABIB.navigation.showScreen(HABIB.elements.adminScreen, false);
-                            HABIB.admin.startStatsLoop();
+                            ESCTRIX.navigation.showScreen(ESCTRIX.elements.adminScreen, false);
+                            ESCTRIX.admin.startStatsLoop();
                         } else {
-                            HABIB.navigation.showScreen(HABIB.elements.dashboardScreen, false);
+                            ESCTRIX.navigation.showScreen(ESCTRIX.elements.dashboardScreen, false);
                         }
-                        HABIB.elements.logoutBtn.classList.remove('hidden');
+                        ESCTRIX.elements.logoutBtn.classList.remove('hidden');
                     }
                 } else {
-                    HABIB.elements.loginError.textContent = data.message || 'Authentication failed.';
+                    ESCTRIX.elements.loginError.textContent = data.message || 'Authentication failed.';
                 }
             } catch (err) {
-                HABIB.elements.loginError.textContent = 'Server error. Please try again.';
+                ESCTRIX.elements.loginError.textContent = 'Server error. Please try again.';
             } finally {
-                HABIB.elements.authSubmitBtn.disabled = false;
+                ESCTRIX.elements.authSubmitBtn.disabled = false;
             }
         },
 
         logout() {
-            if (HABIB.state.p2p) {
-                HABIB.state.p2p.disconnect();
-                HABIB.state.p2p = null;
+            if (ESCTRIX.state.p2p) {
+                ESCTRIX.state.p2p.disconnect();
+                ESCTRIX.state.p2p = null;
             }
-            HABIB.dashboard.stopHosting();
-            HABIB.admin.stopStatsLoop();
-            HABIB.call.end();
+            ESCTRIX.dashboard.stopHosting();
+            ESCTRIX.admin.stopStatsLoop();
+            ESCTRIX.call.end();
 
-            HABIB.state.myUsername = '';
-            HABIB.elements.authPassword.value = '';
-            HABIB.navigation.showScreen(HABIB.elements.loginScreen, false);
-            HABIB.elements.logoutBtn.classList.add('hidden');
-            HABIB.ui.showToast('Logged out successfully.');
+            ESCTRIX.state.myUsername = '';
+            ESCTRIX.elements.authPassword.value = '';
+            ESCTRIX.navigation.showScreen(ESCTRIX.elements.loginScreen, false);
+            ESCTRIX.elements.logoutBtn.classList.add('hidden');
+            ESCTRIX.ui.showToast('Logged out successfully.');
             history.replaceState({ depth: 0 }, '', location.href);
-            HABIB.state.screenHistory = [];
+            ESCTRIX.state.screenHistory = [];
         }
     },
 
     // --- Dashboard Module ---
     dashboard: {
         switchTab(tab) {
-            const e = HABIB.elements;
+            const e = ESCTRIX.elements;
             if (tab === 'host') {
                 e.tabHost.classList.add('active-tab');
                 e.tabJoin.classList.remove('active-tab');
@@ -320,94 +320,94 @@ const HABIB = {
         },
 
         async startHosting() {
-            const pin = HABIB.elements.hostPin.value.trim();
-            const spaceName = HABIB.elements.hostSpaceName.value.trim() || HABIB.state.myUsername;
+            const pin = ESCTRIX.elements.hostPin.value.trim();
+            const spaceName = ESCTRIX.elements.hostSpaceName.value.trim() || ESCTRIX.state.myUsername;
             try {
                 const response = await fetch('/api/host/start', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: HABIB.state.myUsername, space_name: spaceName, pin })
+                    body: JSON.stringify({ username: ESCTRIX.state.myUsername, space_name: spaceName, pin })
                 });
                 const data = await response.json();
                 if (data.status === 'success') {
-                    HABIB.elements.qrCodeImg.src = 'data:image/png;base64,' + data.qr_code;
-                    HABIB.elements.displayPin.textContent = pin || 'None';
-                    HABIB.elements.mySpaceName.textContent = spaceName;
+                    ESCTRIX.elements.qrCodeImg.src = 'data:image/png;base64,' + data.qr_code;
+                    ESCTRIX.elements.displayPin.textContent = pin || 'None';
+                    ESCTRIX.elements.mySpaceName.textContent = spaceName;
 
-                    HABIB.elements.hostSetup.style.display = 'none';
-                    HABIB.elements.hostWaiting.style.display = 'block';
-                    HABIB.elements.tabHost.style.display = 'none';
-                    HABIB.elements.tabJoin.style.display = 'none';
+                    ESCTRIX.elements.hostSetup.style.display = 'none';
+                    ESCTRIX.elements.hostWaiting.style.display = 'block';
+                    ESCTRIX.elements.tabHost.style.display = 'none';
+                    ESCTRIX.elements.tabJoin.style.display = 'none';
 
-                    HABIB.state.activeRoomName = spaceName;
-                    this.initP2P(null, pin, HABIB.state.myUsername, spaceName);
+                    ESCTRIX.state.activeRoomName = spaceName;
+                    this.initP2P(null, pin, ESCTRIX.state.myUsername, spaceName);
                     history.pushState({ hosting: true }, '', location.href);
                 } else {
-                    HABIB.elements.authError.textContent = data.message || 'Failed to create space.';
-                    HABIB.ui.showToast(data.message || 'Space name already in use.', 'error');
+                    ESCTRIX.elements.authError.textContent = data.message || 'Failed to create space.';
+                    ESCTRIX.ui.showToast(data.message || 'Space name already in use.', 'error');
                 }
             } catch (err) { console.error('Host start error', err); }
         },
 
         async stopHosting() {
-            if (!HABIB.state.activeRoomName) return;
+            if (!ESCTRIX.state.activeRoomName) return;
             try {
                 await fetch('/api/host/stop', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ space_name: HABIB.state.activeRoomName })
+                    body: JSON.stringify({ space_name: ESCTRIX.state.activeRoomName })
                 });
             } catch (err) { console.error('Stop host error', err); }
 
-            if (HABIB.state.p2p) {
-                HABIB.state.p2p.disconnect();
-                HABIB.state.p2p = null;
+            if (ESCTRIX.state.p2p) {
+                ESCTRIX.state.p2p.disconnect();
+                ESCTRIX.state.p2p = null;
             }
 
-            HABIB.elements.hostWaiting.style.display = 'none';
-            HABIB.elements.hostSetup.style.display = 'block';
-            HABIB.elements.tabHost.style.display = '';
-            HABIB.elements.tabJoin.style.display = '';
-            HABIB.state.activeRoomName = '';
-            HABIB.ui.showToast('Hosting stopped.', 'success');
+            ESCTRIX.elements.hostWaiting.style.display = 'none';
+            ESCTRIX.elements.hostSetup.style.display = 'block';
+            ESCTRIX.elements.tabHost.style.display = '';
+            ESCTRIX.elements.tabJoin.style.display = '';
+            ESCTRIX.state.activeRoomName = '';
+            ESCTRIX.ui.showToast('Hosting stopped.', 'success');
         },
 
         connectToSpace() {
-            const spaceName = HABIB.elements.joinSpaceName.value.trim();
-            const pin = HABIB.elements.joinPin.value.trim();
+            const spaceName = ESCTRIX.elements.joinSpaceName.value.trim();
+            const pin = ESCTRIX.elements.joinPin.value.trim();
             if (spaceName) {
-                HABIB.elements.authError.textContent = 'Connecting...';
-                HABIB.state.activeRoomName = spaceName;
-                this.initP2P(null, pin, HABIB.state.myUsername, spaceName);
+                ESCTRIX.elements.authError.textContent = 'Connecting...';
+                ESCTRIX.state.activeRoomName = spaceName;
+                this.initP2P(null, pin, ESCTRIX.state.myUsername, spaceName);
             } else {
-                HABIB.elements.authError.textContent = 'Please enter the Space Name.';
+                ESCTRIX.elements.authError.textContent = 'Please enter the Space Name.';
             }
         },
 
         initP2P(serverIp, pin, myName, hostName) {
-            HABIB.state.p2p = new P2PConnection(
-                (msg) => HABIB.chat.handleIncoming(msg),
-                (state, data) => HABIB.chat.updateConnectionState(state, data),
-                (stream, peerId, uname) => HABIB.call.handleRemoteStream(stream, peerId, uname),
-                (type, sender, d) => HABIB.call.handleSignal(type, sender, d)
+            ESCTRIX.state.p2p = new P2PConnection(
+                (msg) => ESCTRIX.chat.handleIncoming(msg),
+                (state, data) => ESCTRIX.chat.updateConnectionState(state, data),
+                (stream, peerId, uname) => ESCTRIX.call.handleRemoteStream(stream, peerId, uname),
+                (type, sender, d) => ESCTRIX.call.handleSignal(type, sender, d)
             );
-            HABIB.state.p2p.connectSignaling(serverIp, pin, myName, hostName);
+            ESCTRIX.state.p2p.connectSignaling(serverIp, pin, myName, hostName);
         }
     },
 
     // --- Chat Module ---
     chat: {
         sendMessage() {
-            const text = HABIB.elements.messageInput.value.trim();
+            const text = ESCTRIX.elements.messageInput.value.trim();
             if (text) {
-                const msgId = HABIB.utils.generateId();
-                if (HABIB.state.p2p?.isConnected()) {
-                    HABIB.state.p2p.send({ type: 'text', content: text, senderName: HABIB.state.myUsername, vanish: HABIB.state.vanishMode, id: msgId });
-                    if (HABIB.state.p2p.ws?.readyState === WebSocket.OPEN) {
-                        HABIB.state.p2p.ws.send(JSON.stringify({ type: 'admin_chat_log', room: HABIB.state.activeRoomName, sender: HABIB.state.myUsername, content: text }));
+                const msgId = ESCTRIX.utils.generateId();
+                if (ESCTRIX.state.p2p?.isConnected()) {
+                    ESCTRIX.state.p2p.send({ type: 'text', content: text, senderName: ESCTRIX.state.myUsername, vanish: ESCTRIX.state.vanishMode, id: msgId });
+                    if (ESCTRIX.state.p2p.ws?.readyState === WebSocket.OPEN) {
+                        ESCTRIX.state.p2p.ws.send(JSON.stringify({ type: 'admin_chat_log', room: ESCTRIX.state.activeRoomName, sender: ESCTRIX.state.myUsername, content: text }));
                     }
-                    this.addMessage(text, 'sent', '', HABIB.state.vanishMode, msgId);
-                    HABIB.elements.messageInput.value = '';
+                    this.addMessage(text, 'sent', '', ESCTRIX.state.vanishMode, msgId);
+                    ESCTRIX.elements.messageInput.value = '';
                 } else {
                     this.sendOfflineMessage(text, msgId);
                 }
@@ -415,10 +415,10 @@ const HABIB = {
         },
 
         async sendOfflineMessage(text, msgId) {
-            const recipient = HABIB.state.p2p?.peerName || HABIB.state.activeRoomName;
+            const recipient = ESCTRIX.state.p2p?.peerName || ESCTRIX.state.activeRoomName;
             if (!recipient) return;
             
-            this.addMessage(text, 'sent', '', HABIB.state.vanishMode, msgId);
+            this.addMessage(text, 'sent', '', ESCTRIX.state.vanishMode, msgId);
             const msgDiv = document.querySelector(`.message[data-id="${msgId}"]`);
             if (msgDiv) msgDiv.style.opacity = '0.6';
             
@@ -428,32 +428,32 @@ const HABIB = {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         recipient_username: recipient,
-                        sender_username: HABIB.state.myUsername,
-                        space_name: HABIB.state.activeRoomName || 'Direct',
+                        sender_username: ESCTRIX.state.myUsername,
+                        space_name: ESCTRIX.state.activeRoomName || 'Direct',
                         payload: text
                     })
                 });
                 const data = await res.json();
                 if (data.status === 'success') {
-                    HABIB.ui.showToast('Peer offline. Message stored in server queue.', 'warn');
+                    ESCTRIX.ui.showToast('Peer offline. Message stored in server queue.', 'warn');
                 } else {
-                    HABIB.ui.showToast('Failed to queue offline message.', 'error');
+                    ESCTRIX.ui.showToast('Failed to queue offline message.', 'error');
                 }
             } catch (err) {
-                HABIB.ui.showToast('Network error while queuing message.', 'error');
+                ESCTRIX.ui.showToast('Network error while queuing message.', 'error');
             }
-            HABIB.elements.messageInput.value = '';
+            ESCTRIX.elements.messageInput.value = '';
         },
 
         async fetchOfflineMessages() {
             try {
-                const res = await fetch(`/api/messages/offline?username=${encodeURIComponent(HABIB.state.myUsername)}`);
+                const res = await fetch(`/api/messages/offline?username=${encodeURIComponent(ESCTRIX.state.myUsername)}`);
                 const data = await res.json();
                 if (data.status === 'success' && data.messages && data.messages.length > 0) {
                     data.messages.forEach(msg => {
                         this.addMessage(msg.payload, 'received', msg.sender + ' (Offline)');
                     });
-                    HABIB.ui.showToast(`Received ${data.messages.length} offline messages!`, 'success');
+                    ESCTRIX.ui.showToast(`Received ${data.messages.length} offline messages!`, 'success');
                 }
             } catch (err) {
                 console.error('Failed to fetch offline messages', err);
@@ -462,59 +462,59 @@ const HABIB = {
 
 
         handleTyping() {
-            if (HABIB.state.p2p?.isConnected() && !this.typingTimer) {
-                HABIB.state.p2p.send({ type: 'typing' });
+            if (ESCTRIX.state.p2p?.isConnected() && !this.typingTimer) {
+                ESCTRIX.state.p2p.send({ type: 'typing' });
                 this.typingTimer = setTimeout(() => { this.typingTimer = null; }, 2000);
             }
         },
 
         handleIncoming(msg) {
             if (msg.type === 'ping') {
-                HABIB.state.p2p?.sendToPeer(msg._fromPeerId, { type: 'pong', timestamp: msg.timestamp });
+                ESCTRIX.state.p2p?.sendToPeer(msg._fromPeerId, { type: 'pong', timestamp: msg.timestamp });
             } else if (msg.type === 'pong') {
-                HABIB.ui.updatePing(Date.now() - msg.timestamp);
+                ESCTRIX.ui.updatePing(Date.now() - msg.timestamp);
             } else if (msg.type === 'text') {
                 this.addMessage(msg.content, 'received', msg.senderName, msg.vanish, msg.id);
             } else if (msg.type === 'reaction') {
                 this.addReaction(msg.messageId, msg.emoji);
             } else if (msg.type === 'incall_text') {
-                HABIB.call.addMessage(msg.content, 'received', msg.senderName);
+                ESCTRIX.call.addMessage(msg.content, 'received', msg.senderName);
             } else if (msg.type === 'typing') {
-                HABIB.ui.showTypingIndicator();
+                ESCTRIX.ui.showTypingIndicator();
             } else if (msg.type === 'file_meta') {
-                HABIB.state.fileReceives[msg._fromPeerId] = { meta: msg, buffer: [], size: 0 };
+                ESCTRIX.state.fileReceives[msg._fromPeerId] = { meta: msg, buffer: [], size: 0 };
             } else if (msg.type === 'file_data') {
                 this.handleFileData(msg);
             } else if (msg.type === 'burn_room') {
-                HABIB.elements.messagesList.innerHTML = '';
-                HABIB.ui.showToast('Room was burned by peer.');
+                ESCTRIX.elements.messagesList.innerHTML = '';
+                ESCTRIX.ui.showToast('Room was burned by peer.');
             }
         },
 
         handleFileData(msg) {
-            const transfer = HABIB.state.fileReceives[msg._fromPeerId];
+            const transfer = ESCTRIX.state.fileReceives[msg._fromPeerId];
             if (transfer) {
                 transfer.buffer.push(msg.data);
                 transfer.size += msg.data.byteLength;
                 if (transfer.size === transfer.meta.size) {
                     const blob = new Blob(transfer.buffer, { type: transfer.meta.fileType });
                     this.addFileMessage(transfer.meta, 'received', blob, transfer.meta.vanish, transfer.meta.id);
-                    delete HABIB.state.fileReceives[msg._fromPeerId];
+                    delete ESCTRIX.state.fileReceives[msg._fromPeerId];
                 }
             }
         },
 
         async handleFileSelect(e) {
             const file = e.target.files[0];
-            if (!file || !HABIB.state.p2p?.isConnected()) return;
-            const msgId = HABIB.utils.generateId();
-            HABIB.state.p2p.sendFileMetadata({ name: file.name, size: file.size, fileType: file.type, vanish: HABIB.state.vanishMode, id: msgId });
-            this.addFileMessage({ name: file.name, size: file.size, fileType: file.type }, 'sent', null, HABIB.state.vanishMode, msgId);
+            if (!file || !ESCTRIX.state.p2p?.isConnected()) return;
+            const msgId = ESCTRIX.utils.generateId();
+            ESCTRIX.state.p2p.sendFileMetadata({ name: file.name, size: file.size, fileType: file.type, vanish: ESCTRIX.state.vanishMode, id: msgId });
+            this.addFileMessage({ name: file.name, size: file.size, fileType: file.type }, 'sent', null, ESCTRIX.state.vanishMode, msgId);
 
             const reader = new FileReader();
             reader.onload = ev => this.transferFileBuffer(ev.target.result, file.name);
             reader.readAsArrayBuffer(file);
-            HABIB.elements.fileInput.value = '';
+            ESCTRIX.elements.fileInput.value = '';
         },
 
         transferFileBuffer(buf, filename) {
@@ -523,25 +523,25 @@ const HABIB = {
             let lastTime = Date.now();
             const send = () => {
                 while (offset < buf.byteLength) {
-                    const dc = HABIB.state.p2p.dataChannel;
+                    const dc = ESCTRIX.state.p2p.dataChannel;
                     if (dc && dc.bufferedAmount > 65536) {
                         dc.onbufferedamountlow = () => { dc.onbufferedamountlow = null; send(); };
                         return;
                     }
                     const chunkSize = Math.min(CHUNK, buf.byteLength - offset);
-                    HABIB.state.p2p.sendFileData(buf.slice(offset, offset + chunkSize));
+                    ESCTRIX.state.p2p.sendFileData(buf.slice(offset, offset + chunkSize));
                     const now = Date.now();
                     const elapsed = Math.max((now - lastTime) / 1000, 0.001);
                     lastTime = now;
                     offset += chunkSize;
-                    HABIB.ui.updateUploadProgress(offset, buf.byteLength, filename, chunkSize / elapsed);
+                    ESCTRIX.ui.updateUploadProgress(offset, buf.byteLength, filename, chunkSize / elapsed);
                 }
             };
             send();
         },
 
         addMessage(text, type = 'sent', senderName = '', isVanish = false, msgId = null) {
-            const id = msgId || HABIB.utils.generateId();
+            const id = msgId || ESCTRIX.utils.generateId();
             const div = document.createElement('div');
             div.className = `message ${type} ${isVanish ? 'vanish-msg' : ''}`;
             div.dataset.id = id;
@@ -553,8 +553,8 @@ const HABIB = {
                 div.textContent = text;
             }
 
-            HABIB.elements.messagesList.appendChild(div);
-            HABIB.elements.messagesList.scrollTop = HABIB.elements.messagesList.scrollHeight;
+            ESCTRIX.elements.messagesList.appendChild(div);
+            ESCTRIX.elements.messagesList.scrollTop = ESCTRIX.elements.messagesList.scrollHeight;
 
             if (isVanish) {
                 setTimeout(() => {
@@ -565,7 +565,7 @@ const HABIB = {
         },
 
         addFileMessage(fileMeta, type = 'sent', fileBlob = null, isVanish = false, msgId = null) {
-            const id = msgId || HABIB.utils.generateId();
+            const id = msgId || ESCTRIX.utils.generateId();
             const div = document.createElement('div');
             div.className = `message ${type} file-message ${isVanish ? 'vanish-msg' : ''}`;
             div.dataset.id = id;
@@ -585,15 +585,15 @@ const HABIB = {
             } else if (fileMeta.fileType?.startsWith('image/')) {
                 if (type === 'received' && fileBlob) {
                     const url = URL.createObjectURL(fileBlob);
-                    html = `<img src="${url}" class="file-preview" onclick="window.open('${url}')"><div class="file-info"><span class="file-name mini">${fileMeta.name}</span><button class="file-download-btn" onclick="HABIB.utils.download('${url}', '${fileMeta.name}')"><i class="ph ph-download-simple"></i></button></div>`;
+                    html = `<img src="${url}" class="file-preview" onclick="window.open('${url}')"><div class="file-info"><span class="file-name mini">${fileMeta.name}</span><button class="file-download-btn" onclick="ESCTRIX.utils.download('${url}', '${fileMeta.name}')"><i class="ph ph-download-simple"></i></button></div>`;
                 } else {
                     html = `<i class="ph ph-image file-icon"></i><div class="file-info"><span class="file-name">${fileMeta.name}</span><span class="file-status">Sent ✓</span></div>`;
                 }
             } else {
-                html = `<i class="ph ph-file file-icon"></i><div class="file-info"><span class="file-name">${fileMeta.name}</span><span class="file-size">${HABIB.utils.formatBytes(fileMeta.size)}</span>`;
+                html = `<i class="ph ph-file file-icon"></i><div class="file-info"><span class="file-name">${fileMeta.name}</span><span class="file-size">${ESCTRIX.utils.formatBytes(fileMeta.size)}</span>`;
                 if (type === 'received' && fileBlob) {
                     const url = URL.createObjectURL(fileBlob);
-                    html += `<button class="file-download-action" onclick="HABIB.utils.download('${url}', '${fileMeta.name}')"><i class="ph ph-download-simple"></i> Download</button>`;
+                    html += `<button class="file-download-action" onclick="ESCTRIX.utils.download('${url}', '${fileMeta.name}')"><i class="ph ph-download-simple"></i> Download</button>`;
                 } else {
                     html += `<span class="file-status">Sent ✓</span>`;
                 }
@@ -601,8 +601,8 @@ const HABIB = {
             }
 
             div.innerHTML = html;
-            HABIB.elements.messagesList.appendChild(div);
-            HABIB.elements.messagesList.scrollTop = HABIB.elements.messagesList.scrollHeight;
+            ESCTRIX.elements.messagesList.appendChild(div);
+            ESCTRIX.elements.messagesList.scrollTop = ESCTRIX.elements.messagesList.scrollHeight;
 
             if (isVanish) {
                 setTimeout(() => {
@@ -614,8 +614,8 @@ const HABIB = {
 
         bindMessageEvents(div, id) {
             div.addEventListener('dblclick', (e) => {
-                HABIB.state.reactionTargetId = id;
-                const picker = HABIB.elements.emojiPicker;
+                ESCTRIX.state.reactionTargetId = id;
+                const picker = ESCTRIX.elements.emojiPicker;
                 if (picker) {
                     picker.classList.remove('hidden');
                     picker.style.left = Math.min(e.pageX, window.innerWidth - 150) + 'px';
@@ -638,43 +638,43 @@ const HABIB = {
         },
 
         toggleVanishMode() {
-            HABIB.state.vanishMode = !HABIB.state.vanishMode;
-            HABIB.elements.vanishModeBtn.classList.toggle('primary-icon', HABIB.state.vanishMode);
-            HABIB.ui.showToast(HABIB.state.vanishMode ? 'Vanish Mode ON' : 'Vanish Mode OFF');
+            ESCTRIX.state.vanishMode = !ESCTRIX.state.vanishMode;
+            ESCTRIX.elements.vanishModeBtn.classList.toggle('primary-icon', ESCTRIX.state.vanishMode);
+            ESCTRIX.ui.showToast(ESCTRIX.state.vanishMode ? 'Vanish Mode ON' : 'Vanish Mode OFF');
         },
 
         burnRoom() {
             if (confirm('Are you sure you want to burn this room? This wipes the chat for everyone.')) {
-                HABIB.elements.messagesList.innerHTML = '';
-                if (HABIB.state.p2p?.isConnected()) {
-                    HABIB.state.p2p.send({ type: 'burn_room' });
+                ESCTRIX.elements.messagesList.innerHTML = '';
+                if (ESCTRIX.state.p2p?.isConnected()) {
+                    ESCTRIX.state.p2p.send({ type: 'burn_room' });
                 }
-                HABIB.ui.showToast('Room securely burned.', 'success');
+                ESCTRIX.ui.showToast('Room securely burned.', 'success');
             }
         },
 
         exportChat() {
-            const msgs = [...HABIB.elements.messagesList.querySelectorAll('.message')].map(m => {
+            const msgs = [...ESCTRIX.elements.messagesList.querySelectorAll('.message')].map(m => {
                 let text = m.innerText || m.textContent;
                 return text.replace(/Download/g, '').replace(/Sent ✓/g, '').trim();
             }).join('\n\n');
-            HABIB.utils.downloadText(msgs, `HABIB_TEXT_Export_${new Date().toISOString().slice(0, 10)}.txt`);
-            HABIB.ui.showToast('Chat history exported.', 'success');
+            ESCTRIX.utils.downloadText(msgs, `ESCTRIX_TEXT_Export_${new Date().toISOString().slice(0, 10)}.txt`);
+            ESCTRIX.ui.showToast('Chat history exported.', 'success');
         },
 
         toggleSmartReplies() {
-            const bar = HABIB.elements.smartReplies;
+            const bar = ESCTRIX.elements.smartReplies;
             if (bar && !bar.classList.contains('hidden')) {
                 bar.classList.add('hidden');
                 return;
             }
-            const received = [...HABIB.elements.messagesList.querySelectorAll('.message.received')];
+            const received = [...ESCTRIX.elements.messagesList.querySelectorAll('.message.received')];
             const lastText = received[received.length - 1]?.textContent?.trim() || '';
             this.showSmartReplies(lastText);
         },
 
         showSmartReplies(lastMsg) {
-            const bar = HABIB.elements.smartReplies;
+            const bar = ESCTRIX.elements.smartReplies;
             if (!bar) return;
             const pools = [
                 ['👍 Got it!', '😊 Thanks!', 'On it!'],
@@ -688,9 +688,9 @@ const HABIB = {
                 chip.className = 'smart-reply-chip';
                 chip.textContent = reply;
                 chip.onclick = () => {
-                    HABIB.elements.messageInput.value = reply;
+                    ESCTRIX.elements.messageInput.value = reply;
                     bar.classList.add('hidden');
-                    HABIB.elements.messageInput.focus();
+                    ESCTRIX.elements.messageInput.focus();
                 };
                 bar.appendChild(chip);
             });
@@ -716,19 +716,19 @@ const HABIB = {
                 if (result && result !== text) {
                     this.addMessage(`🌐 [Translation] ${result}`, 'system');
                 } else {
-                    HABIB.ui.showToast('Could not translate.', 'error');
+                    ESCTRIX.ui.showToast('Could not translate.', 'error');
                 }
-            } catch { HABIB.ui.showToast('Translation failed.', 'error'); }
-            HABIB.elements.smartReplies.classList.add('hidden');
+            } catch { ESCTRIX.ui.showToast('Translation failed.', 'error'); }
+            ESCTRIX.elements.smartReplies.classList.add('hidden');
         },
 
         updateConnectionState(state, data) {
-            const e = HABIB.elements;
+            const e = ESCTRIX.elements;
             if (state === 'connected') {
                 e.statusDot.classList.add('connected');
-                const cnt = HABIB.state.p2p?.getPeerCount() || 1;
+                const cnt = ESCTRIX.state.p2p?.getPeerCount() || 1;
                 e.statusText.textContent = cnt > 1 ? `Group (${cnt} peers)` : `Connected to ${data?.username || 'Peer'}`;
-                if (!e.chatScreen.classList.contains('active')) HABIB.navigation.showScreen(e.chatScreen);
+                if (!e.chatScreen.classList.contains('active')) ESCTRIX.navigation.showScreen(e.chatScreen);
                 e.videoCallBtn.classList.remove('hidden');
                 if (data?.username) this.addMessage(`${data.username} joined the room. 🎉`, 'system');
                 this.startPingLoop();
@@ -736,15 +736,15 @@ const HABIB = {
             } else if (state === 'peer_joining') {
                 if (data?.username) this.addMessage(`${data.username} is connecting...`, 'system');
             } else if (state === 'peer_left') {
-                if (data?.clientId) HABIB.call.removeVideoTile(data.clientId);
-                const cnt = HABIB.state.p2p?.getPeerCount() || 0;
+                if (data?.clientId) ESCTRIX.call.removeVideoTile(data.clientId);
+                const cnt = ESCTRIX.state.p2p?.getPeerCount() || 0;
                 if (cnt > 0) {
                     e.statusText.textContent = `Group (${cnt} peers)`;
                 } else {
                     e.statusDot.classList.remove('connected');
                     e.statusText.textContent = 'Peer Offline';
                     e.videoCallBtn.classList.add('hidden');
-                    HABIB.call.end();
+                    ESCTRIX.call.end();
                 }
                 this.addMessage('A peer has left the room. You can send offline messages.', 'system');
             } else if (state === 'disconnected') {
@@ -752,37 +752,37 @@ const HABIB = {
                 e.statusText.textContent = 'Disconnected';
                 e.videoCallBtn.classList.add('hidden');
                 this.stopPingLoop();
-                HABIB.call.end();
+                ESCTRIX.call.end();
             } else if (state === 'failed_auth') {
-                e.authError.textContent = HABIB.state.p2p.authMessage || 'Invalid PIN or host not found.';
+                e.authError.textContent = ESCTRIX.state.p2p.authMessage || 'Invalid PIN or host not found.';
             } else if (state === 'kicked') {
-                HABIB.admin.showKickedOverlay(HABIB.state.p2p.kickMessage);
+                ESCTRIX.admin.showKickedOverlay(ESCTRIX.state.p2p.kickMessage);
             }
         },
 
         startPingLoop() {
-            if (HABIB.state.pingInterval) return;
-            HABIB.state.pingInterval = setInterval(() => {
-                if (HABIB.state.p2p?.isConnected()) {
-                    const peers = HABIB.state.p2p.getPeerList();
+            if (ESCTRIX.state.pingInterval) return;
+            ESCTRIX.state.pingInterval = setInterval(() => {
+                if (ESCTRIX.state.p2p?.isConnected()) {
+                    const peers = ESCTRIX.state.p2p.getPeerList();
                     if (peers.length > 0) {
-                        HABIB.state.p2p.sendToPeer(peers[0].clientId, { type: 'ping', timestamp: Date.now() });
+                        ESCTRIX.state.p2p.sendToPeer(peers[0].clientId, { type: 'ping', timestamp: Date.now() });
                     }
                 }
             }, 2000);
         },
 
         stopPingLoop() {
-            clearInterval(HABIB.state.pingInterval);
-            HABIB.state.pingInterval = null;
-            HABIB.elements.pingIndicator?.classList.add('hidden');
+            clearInterval(ESCTRIX.state.pingInterval);
+            ESCTRIX.state.pingInterval = null;
+            ESCTRIX.elements.pingIndicator?.classList.add('hidden');
         }
     },
 
     // --- Voice Module ---
     voice: {
         async start() {
-            if (!HABIB.state.p2p?.isConnected()) { HABIB.ui.showToast('Not connected.', 'error'); return; }
+            if (!ESCTRIX.state.p2p?.isConnected()) { ESCTRIX.ui.showToast('Not connected.', 'error'); return; }
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 this.recorder = new MediaRecorder(stream);
@@ -791,33 +791,33 @@ const HABIB = {
                 this.recorder.onstop = () => this.handleStop(stream);
                 this.recorder.start();
                 this.startSpeechRec();
-                HABIB.ui.updateVoiceUI(true);
-            } catch (err) { HABIB.ui.showToast('Microphone access denied.', 'error'); }
+                ESCTRIX.ui.updateVoiceUI(true);
+            } catch (err) { ESCTRIX.ui.showToast('Microphone access denied.', 'error'); }
         },
 
         handleStop(stream) {
-            HABIB.ui.updateVoiceUI(false);
+            ESCTRIX.ui.updateVoiceUI(false);
             const blob = new Blob(this.chunks, { type: 'audio/webm;codecs=opus' });
             stream.getTracks().forEach(t => t.stop());
-            if (blob.size > 0 && HABIB.state.p2p?.isConnected()) {
+            if (blob.size > 0 && ESCTRIX.state.p2p?.isConnected()) {
                 this.sendVoiceNote(blob);
             }
         },
 
         sendVoiceNote(blob) {
             const name = `note_${Date.now()}_voice_note.webm`;
-            const id = HABIB.utils.generateId();
-            const trans = HABIB.state.currentTranscript || '';
-            HABIB.state.p2p.sendFileMetadata({ name, size: blob.size, fileType: blob.type, vanish: HABIB.state.vanishMode, id, transcript: trans });
-            HABIB.chat.addFileMessage({ name, size: blob.size, fileType: blob.type, transcript: trans }, 'sent', null, HABIB.state.vanishMode, id);
+            const id = ESCTRIX.utils.generateId();
+            const trans = ESCTRIX.state.currentTranscript || '';
+            ESCTRIX.state.p2p.sendFileMetadata({ name, size: blob.size, fileType: blob.type, vanish: ESCTRIX.state.vanishMode, id, transcript: trans });
+            ESCTRIX.chat.addFileMessage({ name, size: blob.size, fileType: blob.type, transcript: trans }, 'sent', null, ESCTRIX.state.vanishMode, id);
 
             const reader = new FileReader();
-            reader.onload = ev => HABIB.chat.transferFileBuffer(ev.target.result, name);
+            reader.onload = ev => ESCTRIX.chat.transferFileBuffer(ev.target.result, name);
             reader.readAsArrayBuffer(blob);
         },
 
         startSpeechRec() {
-            HABIB.state.currentTranscript = '';
+            ESCTRIX.state.currentTranscript = '';
             const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (SR) {
                 this.sr = new SR();
@@ -828,7 +828,7 @@ const HABIB = {
                     for (let i = 0; i < e.results.length; ++i) {
                         if (e.results[i].isFinal) text += e.results[i][0].transcript + ' ';
                     }
-                    HABIB.state.currentTranscript = text.trim();
+                    ESCTRIX.state.currentTranscript = text.trim();
                 };
                 this.sr.start();
             }
@@ -843,102 +843,102 @@ const HABIB = {
     // --- Call Module ---
     call: {
         toggleCall() {
-            if (HABIB.state.isVideoCalling) this.end();
+            if (ESCTRIX.state.isVideoCalling) this.end();
             else {
-                HABIB.elements.callTypePeerName.textContent = HABIB.state.p2p?.peerName || 'Peer';
-                HABIB.elements.callTypeModal.classList.remove('hidden');
+                ESCTRIX.elements.callTypePeerName.textContent = ESCTRIX.state.p2p?.peerName || 'Peer';
+                ESCTRIX.elements.callTypeModal.classList.remove('hidden');
             }
         },
 
         initiate(type) {
-            HABIB.elements.callTypeModal.classList.add('hidden');
-            HABIB.state.pendingCallType = type;
-            HABIB.state.p2p.sendSignalingMessage('call_request', { callType: type });
-            HABIB.chat.addMessage(type === 'audio' ? '📞 Calling (Audio)...' : '📹 Calling (Video)...', 'system');
-            HABIB.elements.videoCallBtn.classList.add('active');
+            ESCTRIX.elements.callTypeModal.classList.add('hidden');
+            ESCTRIX.state.pendingCallType = type;
+            ESCTRIX.state.p2p.sendSignalingMessage('call_request', { callType: type });
+            ESCTRIX.chat.addMessage(type === 'audio' ? '📞 Calling (Audio)...' : '📹 Calling (Video)...', 'system');
+            ESCTRIX.elements.videoCallBtn.classList.add('active');
         },
 
         async accept() {
-            const type = HABIB.elements.callModal.dataset.callType || 'video';
-            HABIB.elements.callModal.classList.add('hidden');
-            HABIB.state.p2p.sendSignalingMessage('call_accepted');
+            const type = ESCTRIX.elements.callModal.dataset.callType || 'video';
+            ESCTRIX.elements.callModal.classList.add('hidden');
+            ESCTRIX.state.p2p.sendSignalingMessage('call_accepted');
             await this.startMedia(type);
         },
 
         decline() {
-            HABIB.elements.callModal.classList.add('hidden');
-            HABIB.state.p2p.sendSignalingMessage('call_declined');
-            HABIB.chat.addMessage('You declined the call.', 'system');
+            ESCTRIX.elements.callModal.classList.add('hidden');
+            ESCTRIX.state.p2p.sendSignalingMessage('call_declined');
+            ESCTRIX.chat.addMessage('You declined the call.', 'system');
         },
 
         async startMedia(type) {
             try {
                 const constraints = { audio: true, video: type === 'video' ? { width: 1280, height: 720 } : false };
-                HABIB.state.localVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
-                HABIB.elements.localVideo.srcObject = HABIB.state.localVideoStream;
-                HABIB.elements.videoOverlay.classList.remove('hidden');
-                HABIB.state.isVideoCalling = true;
-                HABIB.state.isCamOff = (type === 'audio');
-                HABIB.ui.updateCallUI();
-                await HABIB.state.p2p.startMedia(HABIB.state.localVideoStream);
-            } catch (err) { HABIB.ui.showToast('Camera/Mic error.', 'error'); }
+                ESCTRIX.state.localVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
+                ESCTRIX.elements.localVideo.srcObject = ESCTRIX.state.localVideoStream;
+                ESCTRIX.elements.videoOverlay.classList.remove('hidden');
+                ESCTRIX.state.isVideoCalling = true;
+                ESCTRIX.state.isCamOff = (type === 'audio');
+                ESCTRIX.ui.updateCallUI();
+                await ESCTRIX.state.p2p.startMedia(ESCTRIX.state.localVideoStream);
+            } catch (err) { ESCTRIX.ui.showToast('Camera/Mic error.', 'error'); }
         },
 
         end() {
-            if (!HABIB.state.isVideoCalling) return;
-            HABIB.state.isVideoCalling = false;
-            HABIB.elements.videoOverlay.classList.add('hidden');
-            HABIB.elements.groupVideoGrid.innerHTML = '';
-            if (HABIB.state.localVideoStream) {
-                HABIB.state.localVideoStream.getTracks().forEach(t => t.stop());
-                HABIB.state.localVideoStream = null;
+            if (!ESCTRIX.state.isVideoCalling) return;
+            ESCTRIX.state.isVideoCalling = false;
+            ESCTRIX.elements.videoOverlay.classList.add('hidden');
+            ESCTRIX.elements.groupVideoGrid.innerHTML = '';
+            if (ESCTRIX.state.localVideoStream) {
+                ESCTRIX.state.localVideoStream.getTracks().forEach(t => t.stop());
+                ESCTRIX.state.localVideoStream = null;
             }
-            HABIB.elements.localVideo.srcObject = null;
-            HABIB.ui.stopCallTimer();
-            HABIB.elements.videoCallBtn.classList.remove('active');
-            HABIB.chat.addMessage('Call ended.', 'system');
-            HABIB.state.p2p?.sendSignalingMessage('call_declined');
+            ESCTRIX.elements.localVideo.srcObject = null;
+            ESCTRIX.ui.stopCallTimer();
+            ESCTRIX.elements.videoCallBtn.classList.remove('active');
+            ESCTRIX.chat.addMessage('Call ended.', 'system');
+            ESCTRIX.state.p2p?.sendSignalingMessage('call_declined');
         },
 
         toggleMute() {
-            HABIB.state.isMuted = !HABIB.state.isMuted;
-            HABIB.state.localVideoStream?.getAudioTracks().forEach(t => t.enabled = !HABIB.state.isMuted);
-            HABIB.ui.updateMuteBtn();
+            ESCTRIX.state.isMuted = !ESCTRIX.state.isMuted;
+            ESCTRIX.state.localVideoStream?.getAudioTracks().forEach(t => t.enabled = !ESCTRIX.state.isMuted);
+            ESCTRIX.ui.updateMuteBtn();
         },
 
         toggleCam() {
-            HABIB.state.isCamOff = !HABIB.state.isCamOff;
-            HABIB.state.localVideoStream?.getVideoTracks().forEach(t => t.enabled = !HABIB.state.isCamOff);
-            HABIB.ui.updateCamBtn();
+            ESCTRIX.state.isCamOff = !ESCTRIX.state.isCamOff;
+            ESCTRIX.state.localVideoStream?.getVideoTracks().forEach(t => t.enabled = !ESCTRIX.state.isCamOff);
+            ESCTRIX.ui.updateCamBtn();
         },
 
         async toggleScreenShare() {
-            if (!HABIB.state.isScreenSharing) {
+            if (!ESCTRIX.state.isScreenSharing) {
                 try {
-                    HABIB.state.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
-                    const track = HABIB.state.screenStream.getVideoTracks()[0];
+                    ESCTRIX.state.screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                    const track = ESCTRIX.state.screenStream.getVideoTracks()[0];
                     track.onended = () => this.toggleScreenShare();
-                    await HABIB.state.p2p.replaceVideoTrack(track);
-                    HABIB.elements.localVideo.srcObject = HABIB.state.screenStream;
-                    HABIB.state.isScreenSharing = true;
-                    HABIB.elements.screenShareBtn.classList.add('muted-active');
+                    await ESCTRIX.state.p2p.replaceVideoTrack(track);
+                    ESCTRIX.elements.localVideo.srcObject = ESCTRIX.state.screenStream;
+                    ESCTRIX.state.isScreenSharing = true;
+                    ESCTRIX.elements.screenShareBtn.classList.add('muted-active');
                 } catch {}
             } else {
-                HABIB.state.isScreenSharing = false;
-                HABIB.elements.screenShareBtn.classList.remove('muted-active');
-                HABIB.state.screenStream?.getTracks().forEach(t => t.stop());
-                const localTrack = HABIB.state.localVideoStream?.getVideoTracks()[0];
-                if (localTrack) await HABIB.state.p2p.replaceVideoTrack(localTrack);
-                HABIB.elements.localVideo.srcObject = HABIB.state.localVideoStream;
+                ESCTRIX.state.isScreenSharing = false;
+                ESCTRIX.elements.screenShareBtn.classList.remove('muted-active');
+                ESCTRIX.state.screenStream?.getTracks().forEach(t => t.stop());
+                const localTrack = ESCTRIX.state.localVideoStream?.getVideoTracks()[0];
+                if (localTrack) await ESCTRIX.state.p2p.replaceVideoTrack(localTrack);
+                ESCTRIX.elements.localVideo.srcObject = ESCTRIX.state.localVideoStream;
             }
         },
 
         sendIncallMessage() {
-            const text = HABIB.elements.incallMessageInput.value.trim();
-            if (text && HABIB.state.p2p?.isConnected()) {
-                HABIB.state.p2p.send({ type: 'incall_text', content: text, senderName: HABIB.state.myUsername });
+            const text = ESCTRIX.elements.incallMessageInput.value.trim();
+            if (text && ESCTRIX.state.p2p?.isConnected()) {
+                ESCTRIX.state.p2p.send({ type: 'incall_text', content: text, senderName: ESCTRIX.state.myUsername });
                 this.addMessage(text, 'sent');
-                HABIB.elements.incallMessageInput.value = '';
+                ESCTRIX.elements.incallMessageInput.value = '';
             }
         },
 
@@ -946,8 +946,8 @@ const HABIB = {
             const div = document.createElement('div');
             div.className = `message ${type} incall-msg`;
             div.innerHTML = sender ? `<strong>${sender}</strong>: ${text}` : text;
-            HABIB.elements.incallMessages.appendChild(div);
-            HABIB.elements.incallMessages.scrollTop = HABIB.elements.incallMessages.scrollHeight;
+            ESCTRIX.elements.incallMessages.appendChild(div);
+            ESCTRIX.elements.incallMessages.scrollTop = ESCTRIX.elements.incallMessages.scrollHeight;
         },
 
         handleRemoteStream(stream, peerId, username) {
@@ -957,7 +957,7 @@ const HABIB = {
 
         addVideoTile(stream, peerId, username) {
             this.removeVideoTile(peerId);
-            const grid = HABIB.elements.groupVideoGrid;
+            const grid = ESCTRIX.elements.groupVideoGrid;
             const tile = document.createElement('div');
             tile.className = 'video-tile';
             tile.dataset.peerId = peerId;
@@ -974,19 +974,19 @@ const HABIB = {
         removeVideoTile(peerId) {
             const tile = document.querySelector(`.video-tile[data-peer-id="${peerId}"]`);
             tile?.remove();
-            HABIB.elements.groupVideoGrid.dataset.count = HABIB.elements.groupVideoGrid.children.length;
+            ESCTRIX.elements.groupVideoGrid.dataset.count = ESCTRIX.elements.groupVideoGrid.children.length;
         },
 
         handleSignal(type, sender, data) {
             if (type === 'call_request') {
-                HABIB.elements.callerName.textContent = HABIB.state.p2p?.peerName || 'Peer';
-                HABIB.elements.callModal.classList.remove('hidden');
-                HABIB.elements.callModal.dataset.callType = data?.callType || 'video';
+                ESCTRIX.elements.callerName.textContent = ESCTRIX.state.p2p?.peerName || 'Peer';
+                ESCTRIX.elements.callModal.classList.remove('hidden');
+                ESCTRIX.elements.callModal.dataset.callType = data?.callType || 'video';
             } else if (type === 'call_accepted') {
-                this.startMedia(HABIB.state.pendingCallType || 'video');
+                this.startMedia(ESCTRIX.state.pendingCallType || 'video');
             } else if (type === 'call_declined') {
-                if (HABIB.state.isVideoCalling) this.end();
-                else HABIB.ui.showToast('Call declined.', 'error');
+                if (ESCTRIX.state.isVideoCalling) this.end();
+                else ESCTRIX.ui.showToast('Call declined.', 'error');
             }
         }
     },
@@ -995,23 +995,23 @@ const HABIB = {
     admin: {
         startStatsLoop() {
             this.fetchStats();
-            HABIB.state.adminStatsInterval = setInterval(() => this.fetchStats(), 5000);
+            ESCTRIX.state.adminStatsInterval = setInterval(() => this.fetchStats(), 5000);
             this.initWebSocket();
         },
 
         stopStatsLoop() {
-            clearInterval(HABIB.state.adminStatsInterval);
-            HABIB.state.adminWs?.close();
+            clearInterval(ESCTRIX.state.adminStatsInterval);
+            ESCTRIX.state.adminWs?.close();
         },
 
         async fetchStats() {
             try {
-                const res = await fetch(`/api/admin/stats?username=${HABIB.state.myUsername}`);
+                const res = await fetch(`/api/admin/stats?username=${ESCTRIX.state.myUsername}`);
                 const data = await res.json();
                 if (data.status === 'success') {
-                    HABIB.elements.statTotalUsers.textContent = data.total_users;
-                    HABIB.elements.statActiveHosts.textContent = data.active_hosts;
-                    HABIB.elements.statTotalConnections.textContent = data.total_connections;
+                    ESCTRIX.elements.statTotalUsers.textContent = data.total_users;
+                    ESCTRIX.elements.statActiveHosts.textContent = data.active_hosts;
+                    ESCTRIX.elements.statTotalConnections.textContent = data.total_connections;
                     this.renderHosts(data.active_hosts_list);
                     this.renderUsers(data.user_list);
                 }
@@ -1019,26 +1019,26 @@ const HABIB = {
         },
 
         renderHosts(list) {
-            const ul = HABIB.elements.adminHostsUl;
+            const ul = ESCTRIX.elements.adminHostsUl;
             ul.innerHTML = list.length === 0 ? '<li class="muted-li">No active spaces.</li>' : list.map(h => `
                 <li class="admin-host-item">
                     <div class="host-info"><strong>${h.hostname}</strong> (${h.clients})</div>
                     <div class="host-users">${(h.users || []).map(u => `
-                        <button onclick="HABIB.admin.openKickModal('${h.hostname}','${u.username}')" class="admin-kick-btn">${u.username}${u.is_host ? ' ★' : ''}</button>
+                        <button onclick="ESCTRIX.admin.openKickModal('${h.hostname}','${u.username}')" class="admin-kick-btn">${u.username}${u.is_host ? ' ★' : ''}</button>
                     `).join('')}</div>
                 </li>
             `).join('');
         },
 
         renderUsers(list) {
-            const tbody = HABIB.elements.adminUsersTbody;
+            const tbody = ESCTRIX.elements.adminUsersTbody;
             const protected = ['HABIB_Admin', 'Gayathri'];
             tbody.innerHTML = list.map(u => `
                 <tr>
                     <td>${u.id}</td>
                     <td>${u.username}</td>
                     <td align="right">${protected.includes(u.username) ? '<span class="prot">Protected</span>' : `
-                        <button onclick="HABIB.admin.deleteUser('${u.username}')" class="admin-del-btn"><i class="ph ph-trash"></i></button>
+                        <button onclick="ESCTRIX.admin.deleteUser('${u.username}')" class="admin-del-btn"><i class="ph ph-trash"></i></button>
                     `}</td>
                 </tr>
             `).join('');
@@ -1046,16 +1046,16 @@ const HABIB = {
 
         initWebSocket() {
             const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
-            HABIB.state.adminWs = new WebSocket(`${protocol}//${location.host}/ws/admin_${Math.random().toString(36).substr(7)}`);
-            HABIB.state.adminWs.onopen = () => HABIB.state.adminWs.send(JSON.stringify({ type: 'admin_auth', data: { username: HABIB.state.myUsername, password: HABIB.state.myPassword } }));
-            HABIB.state.adminWs.onmessage = (e) => {
+            ESCTRIX.state.adminWs = new WebSocket(`${protocol}//${location.host}/ws/admin_${Math.random().toString(36).substr(7)}`);
+            ESCTRIX.state.adminWs.onopen = () => ESCTRIX.state.adminWs.send(JSON.stringify({ type: 'admin_auth', data: { username: ESCTRIX.state.myUsername, password: ESCTRIX.state.myPassword } }));
+            ESCTRIX.state.adminWs.onmessage = (e) => {
                 const msg = JSON.parse(e.data);
                 if (msg.type === 'admin_chat_log') this.appendChatLog(msg);
             };
         },
 
         appendChatLog(msg) {
-            const log = HABIB.elements.adminChatLog;
+            const log = ESCTRIX.elements.adminChatLog;
             const span = document.createElement('span');
             span.innerHTML = `[<span class="room">${msg.room}</span>] <span class="sender">${msg.sender}</span>: ${msg.content}<br>`;
             log.appendChild(span);
@@ -1063,22 +1063,22 @@ const HABIB = {
         },
 
         openKickModal(room, user) {
-            HABIB.state.kickTarget = { room, user };
-            HABIB.elements.kickModalTarget.textContent = user;
-            HABIB.elements.kickAdminModal.classList.remove('hidden');
+            ESCTRIX.state.kickTarget = { room, user };
+            ESCTRIX.elements.kickModalTarget.textContent = user;
+            ESCTRIX.elements.kickAdminModal.classList.remove('hidden');
         },
 
         async confirmKick() {
-            const { room, user } = HABIB.state.kickTarget;
-            const msg = HABIB.elements.kickCustomMsg.value.trim() || 'Removed by administrator.';
-            HABIB.elements.kickAdminModal.classList.add('hidden');
+            const { room, user } = ESCTRIX.state.kickTarget;
+            const msg = ESCTRIX.elements.kickCustomMsg.value.trim() || 'Removed by administrator.';
+            ESCTRIX.elements.kickAdminModal.classList.add('hidden');
             const res = await fetch('/api/admin/kick', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ admin_username: HABIB.state.myUsername, target_username: user, space_name: room, kick_message: msg })
+                body: JSON.stringify({ admin_username: ESCTRIX.state.myUsername, target_username: user, space_name: room, kick_message: msg })
             });
             const data = await res.json();
-            HABIB.ui.showToast(data.status === 'success' ? `Kicked ${user}!` : data.message);
+            ESCTRIX.ui.showToast(data.status === 'success' ? `Kicked ${user}!` : data.message);
             this.fetchStats();
         },
 
@@ -1087,50 +1087,50 @@ const HABIB = {
             const res = await fetch('/api/admin/delete_user', {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ admin_username: HABIB.state.myUsername, target_username: user })
+                body: JSON.stringify({ admin_username: ESCTRIX.state.myUsername, target_username: user })
             });
-            HABIB.ui.showToast((await res.json()).status === 'success' ? `Deleted ${user}!` : 'Failed');
+            ESCTRIX.ui.showToast((await res.json()).status === 'success' ? `Deleted ${user}!` : 'Failed');
             this.fetchStats();
         },
 
         async broadcast() {
-            const inp = HABIB.elements.adminBroadcastMsg;
+            const inp = ESCTRIX.elements.adminBroadcastMsg;
             const msg = inp.value.trim();
             if (!msg) return;
             const res = await fetch('/api/admin/broadcast', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ admin_username: HABIB.state.myUsername, message: msg })
+                body: JSON.stringify({ admin_username: ESCTRIX.state.myUsername, message: msg })
             });
             if ((await res.json()).status === 'success') {
                 inp.value = '';
-                HABIB.ui.showToast('Broadcast sent.');
+                ESCTRIX.ui.showToast('Broadcast sent.');
             }
         },
 
         enterApp() {
             this.stopStatsLoop();
-            HABIB.navigation.showScreen(HABIB.elements.dashboardScreen);
+            ESCTRIX.navigation.showScreen(ESCTRIX.elements.dashboardScreen);
         },
 
         showKickedOverlay(msg) {
-            HABIB.elements.kickedMessage.textContent = msg;
-            HABIB.elements.kickedOverlay.classList.remove('hidden');
+            ESCTRIX.elements.kickedMessage.textContent = msg;
+            ESCTRIX.elements.kickedOverlay.classList.remove('hidden');
         },
 
         handleKickedOk() {
-            HABIB.elements.kickedOverlay.classList.add('hidden');
-            HABIB.navigation.showScreen(HABIB.elements.dashboardScreen, false);
+            ESCTRIX.elements.kickedOverlay.classList.add('hidden');
+            ESCTRIX.navigation.showScreen(ESCTRIX.elements.dashboardScreen, false);
             history.replaceState({ depth: 0 }, '', location.href);
-            HABIB.state.screenHistory = [];
+            ESCTRIX.state.screenHistory = [];
         }
     },
 
     // --- UI & Utilities ---
     ui: {
         showToast(msg, type = 'success') {
-            const t = HABIB.elements.toast;
-            HABIB.elements.toastMsg.textContent = msg;
+            const t = ESCTRIX.elements.toast;
+            ESCTRIX.elements.toastMsg.textContent = msg;
             t.classList.remove('hidden');
             t.className = `toast show ${type === 'success' ? 'success' : 'error'}`;
             t.style.background = type === 'success' ? 'linear-gradient(135deg, #10b981, #059669)' : 'linear-gradient(135deg, #f04a4a, #c53030)';
@@ -1141,7 +1141,7 @@ const HABIB = {
         },
 
         updatePing(rtt) {
-            const p = HABIB.elements.pingIndicator;
+            const p = ESCTRIX.elements.pingIndicator;
             if (!p) return;
             p.classList.remove('hidden');
             const color = rtt > 150 ? '#f04a4a' : (rtt > 80 ? '#ffcc00' : '#10b981');
@@ -1149,7 +1149,7 @@ const HABIB = {
         },
 
         showTypingIndicator() {
-            const ind = HABIB.elements.typingIndicator;
+            const ind = ESCTRIX.elements.typingIndicator;
             if (!ind) return;
             ind.classList.remove('hidden');
             clearTimeout(this.typingTimeout);
@@ -1160,22 +1160,22 @@ const HABIB = {
             const pct = Math.round((sent / total) * 100);
             const kbps = (speed / 1024).toFixed(1);
             const disp = kbps > 1024 ? (kbps / 1024).toFixed(2) + ' MB/s' : kbps + ' KB/s';
-            HABIB.elements.fileUploadProgress.classList.remove('hidden');
-            HABIB.elements.progressBarFill.style.width = pct + '%';
-            HABIB.elements.progressPercent.textContent = pct + '%';
-            HABIB.elements.progressFilename.textContent = name;
-            HABIB.elements.progressSpeed.textContent = disp;
-            if (pct >= 100) setTimeout(() => HABIB.elements.fileUploadProgress.classList.add('hidden'), 1500);
+            ESCTRIX.elements.fileUploadProgress.classList.remove('hidden');
+            ESCTRIX.elements.progressBarFill.style.width = pct + '%';
+            ESCTRIX.elements.progressPercent.textContent = pct + '%';
+            ESCTRIX.elements.progressFilename.textContent = name;
+            ESCTRIX.elements.progressSpeed.textContent = disp;
+            if (pct >= 100) setTimeout(() => ESCTRIX.elements.fileUploadProgress.classList.add('hidden'), 1500);
         },
 
         updateVoiceUI(isRecording) {
-            HABIB.elements.voiceRecordingBar.classList.toggle('hidden', !isRecording);
-            HABIB.elements.voiceNoteBtn.classList.toggle('recording', isRecording);
+            ESCTRIX.elements.voiceRecordingBar.classList.toggle('hidden', !isRecording);
+            ESCTRIX.elements.voiceNoteBtn.classList.toggle('recording', isRecording);
             if (isRecording) {
-                HABIB.state.voiceSeconds = 0;
+                ESCTRIX.state.voiceSeconds = 0;
                 this.voiceTimer = setInterval(() => {
-                    const s = ++HABIB.state.voiceSeconds;
-                    HABIB.elements.voiceRecTimer.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+                    const s = ++ESCTRIX.state.voiceSeconds;
+                    ESCTRIX.elements.voiceRecTimer.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
                 }, 1000);
             } else {
                 clearInterval(this.voiceTimer);
@@ -1183,41 +1183,41 @@ const HABIB = {
         },
 
         updateCallUI() {
-            HABIB.state.callSeconds = 0;
-            HABIB.state.callTimerInterval = setInterval(() => {
-                const s = ++HABIB.state.callSeconds;
-                HABIB.elements.callTimer.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+            ESCTRIX.state.callSeconds = 0;
+            ESCTRIX.state.callTimerInterval = setInterval(() => {
+                const s = ++ESCTRIX.state.callSeconds;
+                ESCTRIX.elements.callTimer.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
             }, 1000);
             this.updateMuteBtn();
             this.updateCamBtn();
         },
 
         stopCallTimer() {
-            clearInterval(HABIB.state.callTimerInterval);
+            clearInterval(ESCTRIX.state.callTimerInterval);
         },
 
         updateMuteBtn() {
-            HABIB.elements.muteBtn.innerHTML = HABIB.state.isMuted ? '<i class="ph ph-microphone-slash"></i>' : '<i class="ph ph-microphone"></i>';
-            HABIB.elements.muteBtn.classList.toggle('muted-active', HABIB.state.isMuted);
+            ESCTRIX.elements.muteBtn.innerHTML = ESCTRIX.state.isMuted ? '<i class="ph ph-microphone-slash"></i>' : '<i class="ph ph-microphone"></i>';
+            ESCTRIX.elements.muteBtn.classList.toggle('muted-active', ESCTRIX.state.isMuted);
         },
 
         updateCamBtn() {
-            HABIB.elements.camOffBtn.innerHTML = HABIB.state.isCamOff ? '<i class="ph ph-video-camera-slash"></i>' : '<i class="ph ph-video-camera"></i>';
-            HABIB.elements.camOffBtn.classList.toggle('muted-active', HABIB.state.isCamOff);
+            ESCTRIX.elements.camOffBtn.innerHTML = ESCTRIX.state.isCamOff ? '<i class="ph ph-video-camera-slash"></i>' : '<i class="ph ph-video-camera"></i>';
+            ESCTRIX.elements.camOffBtn.classList.toggle('muted-active', ESCTRIX.state.isCamOff);
         }
     },
 
     verification: {
         async openModal() {
-            const seed = HABIB.state.activeRoomName + (HABIB.state.pin || '');
+            const seed = ESCTRIX.state.activeRoomName + (ESCTRIX.state.pin || '');
             const encoder = new TextEncoder();
             const data = encoder.encode(seed);
             const hashBuffer = await crypto.subtle.digest('SHA-256', data);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
             const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-            HABIB.elements.e2eeHashLabel.textContent = hashHex;
-            const ctx = HABIB.elements.e2eeCanvas.getContext('2d');
+            ESCTRIX.elements.e2eeHashLabel.textContent = hashHex;
+            const ctx = ESCTRIX.elements.e2eeCanvas.getContext('2d');
             ctx.clearRect(0, 0, 200, 200);
             ctx.fillStyle = '#0d1117'; ctx.fillRect(0, 0, 200, 200);
             ctx.fillStyle = '#' + hashHex.substr(0, 6);
@@ -1228,7 +1228,7 @@ const HABIB = {
                     ctx.fillRect((4 - c) * 40 + 44, r * 40 + 4, 32, 32);
                 }
             }
-            HABIB.elements.e2eeModal.classList.remove('hidden');
+            ESCTRIX.elements.e2eeModal.classList.remove('hidden');
         }
     },
 
@@ -1250,4 +1250,4 @@ const HABIB = {
     }
 };
 
-document.addEventListener('DOMContentLoaded', () => HABIB.init());
+document.addEventListener('DOMContentLoaded', () => ESCTRIX.init());

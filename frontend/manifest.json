@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "HABIB TEXT",
-  "short_name": "HABIB TEXT",
+  "name": "ESCTRIX",
+  "short_name": "ESCTRIX",
   "description": "Secure P2P Messenger for private messaging, file transfer, and video calls.",
   "start_url": "/",
   "scope": "/",

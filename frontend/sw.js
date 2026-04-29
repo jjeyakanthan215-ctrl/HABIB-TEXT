@@ -1,4 +1,4 @@
-const CACHE_NAME = 'habib-text-v2';
+const CACHE_NAME = 'esctrix-v2';
 const ASSETS = [
     '/',
     '/index.html',

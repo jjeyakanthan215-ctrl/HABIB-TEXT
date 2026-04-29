@@ -1,4 +1,4 @@
-# HABIB TEXT – Python Dependencies
+# ESCTRIX – Python Dependencies
 # Install with: pip install -r requirements.txt
 
 # Web framework

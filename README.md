@@ -1,6 +1,6 @@
-# HABIB TEXT — Secure P2P Messenger
+# ESCTRIX — Secure P2P Messenger
 
-HABIB TEXT is a high-end, private, and secure peer-to-peer communication platform. Built with modern web technologies and a focus on privacy, it allows users to connect directly with each other for messaging, file sharing, and video calls without a central server storing their data.
+ESCTRIX is a high-end, private, and secure peer-to-peer communication platform. Built with modern web technologies and a focus on privacy, it allows users to connect directly with each other for messaging, file sharing, and video calls without a central server storing their data.
 
 ## 🚀 Key Features
 
@@ -54,7 +54,7 @@ HABIB TEXT is a high-end, private, and secure peer-to-peer communication platfor
 
 ## 🔒 Security Note
 
-HABIB TEXT uses WebRTC for peer-to-peer communication. While the signaling server (this backend) facilitates the initial connection, it **never** sees or stores your private messages or media streams. Everything is encrypted using industry-standard DTLS and SRTP.
+ESCTRIX uses WebRTC for peer-to-peer communication. While the signaling server (this backend) facilitates the initial connection, it **never** sees or stores your private messages or media streams. Everything is encrypted using industry-standard DTLS and SRTP.
 
 ---
-*Created with ❤️ by the HABIB TEXT Team.*
+*Created with ❤️ by the ESCTRIX Team.*

@@ -1,5 +1,5 @@
 /**
- * HABIB TEXT — Mesh P2P Connection Manager
+ * ESCTRIX — Mesh P2P Connection Manager
  * Supports up to 4 simultaneous peers via WebRTC Mesh topology.
  * Each remote peer gets its own RTCPeerConnection + DataChannel.
  */
