@@ -7,23 +7,33 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import os
 
+from contextlib import asynccontextmanager
 from discovery import MDNSService
 from security import generate_qr_base64
-from database import create_user, verify_user, get_total_users, get_all_users, delete_user
+from database import init_db, create_user, verify_user, get_total_users, get_all_users, delete_user
 from connection_manager import manager
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI()
-
-# Setup static files and templates
-os.makedirs("frontend", exist_ok=True)
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
-templates = Jinja2Templates(directory="frontend")
+# --- Configuration ---
+ADMIN_USERS = os.environ.get("ADMIN_USERS", "HABIB_Admin,Gayathri").split(",")
+DEFAULT_PORT = int(os.environ.get("PORT", 8006))
 
 mdns_service = None
 
-ADMIN_USERS = ["HABIB_Admin", "Gayathri"]
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Initializing database...")
+    init_db()
+    logger.info("Server started. Waiting for host setup...")
+    yield
+    # Shutdown
+    if mdns_service:
+        logger.info("Stopping mDNS service...")
+        mdns_service.stop()
+
+app = FastAPI(lifespan=lifespan)
 
 
 class AuthData(BaseModel):
@@ -53,15 +63,10 @@ class AdminBroadcast(BaseModel):
     message: str
 
 
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Server started. Waiting for host setup...")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    if mdns_service:
-        mdns_service.stop()
+# Setup static files and templates
+os.makedirs("frontend", exist_ok=True)
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+templates = Jinja2Templates(directory="frontend")
 
 
 @app.get("/health")
@@ -187,12 +192,12 @@ async def start_hosting(data: HostStart):
             connect_url = render_url or "https://your-app.onrender.com"
         else:
             if mdns_service is None:
-                port = int(os.environ.get("PORT", 8006))
+                port = DEFAULT_PORT
                 mdns_service = MDNSService(port=port)
                 mdns_service.start()
             connect_url = f"http://{mdns_service.ip}:{mdns_service.port}"
     except Exception:
-        connect_url = render_url or "http://localhost:8006"
+        connect_url = render_url or f"http://localhost:{DEFAULT_PORT}"
 
     qr_base64 = generate_qr_base64(connect_url)
 

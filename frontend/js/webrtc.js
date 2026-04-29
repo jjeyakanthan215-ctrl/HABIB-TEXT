@@ -219,7 +219,7 @@ class P2PConnection {
             pc.createOffer().then(offer => {
                 return pc.setLocalDescription(offer).then(() => offer);
             }).then(offer => {
-                this.sendSignalingMessage('offer', { sdp: offer, username: this.myName }, remotePeerId);
+                this.sendSignalingMessage('offer', { sdp: offer, username: this.myUsername }, remotePeerId);
             }).catch(e => console.error('[Mesh] Manual offer error:', e));
         }
 

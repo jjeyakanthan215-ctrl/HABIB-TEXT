@@ -122,5 +122,4 @@ def delete_user(username: str) -> bool:
     finally:
         conn.close()
 
-# Initialize the database on module import
-init_db()
+# database.py is now just a library, init_db() should be called by the application startup.

@@ -33,11 +33,13 @@ class ConnectionManager:
             'clients': {},
             'usernames': {}  # client_id -> username
         }
+        logger.info(f"Room created: {space_name} by {host_username}")
         return True
 
     def remove_room(self, space_name: str):
         if space_name in self.rooms:
             del self.rooms[space_name]
+            logger.info(f"Room removed: {space_name}")
 
     def add_client_to_room(
         self,
@@ -61,6 +63,7 @@ class ConnectionManager:
         room['usernames'][client_id] = username
         if is_host and room['host_client_id'] is None:
             room['host_client_id'] = client_id
+        logger.info(f"Client {username} ({client_id}) joined room {space_name}")
         return 'ok'
 
     def remove_client_from_room(self, space_name: str, client_id: str):
@@ -71,6 +74,7 @@ class ConnectionManager:
             # If the host left, clear the host_client_id
             if room.get('host_client_id') == client_id:
                 room['host_client_id'] = None
+            logger.info(f"Client {client_id} left room {space_name}")
 
     async def kick_user(
         self,
