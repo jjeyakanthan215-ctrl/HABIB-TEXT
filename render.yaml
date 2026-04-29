@@ -11,10 +11,6 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.9"
       - key: DB_PATH
-        value: /data/users.db
+        value: "users.db"
       - key: RENDER
         value: "true"
-    disk:
-      name: habib-text-data
-      mountPath: /data
-      sizeGB: 1
