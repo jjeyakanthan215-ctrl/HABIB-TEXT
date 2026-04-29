@@ -1,35 +1,55 @@
 {
+  "id": "/",
   "name": "HABIB TEXT",
   "short_name": "HABIB TEXT",
+  "description": "Secure P2P Messenger for private messaging, file transfer, and video calls.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#080c14",
   "theme_color": "#8b5cf6",
-  "description": "Secure P2P Messenger",
+  "categories": ["communications", "productivity", "social"],
   "icons": [
     {
       "src": "/static/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/static/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ],
   "screenshots": [
     {
       "src": "/static/screenshot1.png",
       "sizes": "1080x1920",
-      "type": "image/png"
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Secure Chat Interface"
     },
     {
       "src": "/static/screenshot2.png",
       "sizes": "1080x1920",
-      "type": "image/png"
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "P2P Dashboard"
     }
   ]
 }
