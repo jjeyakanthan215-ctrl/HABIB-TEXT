@@ -1,25 +1,35 @@
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 
+MAX_ROOM_CAPACITY = 4  # Support up to 4 users for group calls
+
+
 class ConnectionManager:
     def __init__(self):
-        # rooms maps space_name -> { 'pin': str, 'host_username': str, 'clients': { client_id: websocket } }
+        # rooms maps space_name -> {
+        #   'pin': str,
+        #   'host_username': str,
+        #   'host_client_id': str | None,   # the actual WS client_id of the host
+        #   'clients': { client_id: websocket },
+        #   'usernames': { client_id: username }
+        # }
         self.rooms: Dict[str, Dict[str, Any]] = {}
         self.admin_connections: Dict[str, WebSocket] = {}
 
     def get_room(self, space_name: str):
         return self.rooms.get(space_name)
 
-    def create_room(self, space_name: str, host_username: str, pin: str):
+    def create_room(self, space_name: str, host_username: str, pin: str) -> bool:
         if space_name in self.rooms:
             return False
         self.rooms[space_name] = {
             'pin': pin,
             'host_username': host_username,
+            'host_client_id': None,   # Set when the host WebSocket authenticates
             'clients': {},
             'usernames': {}  # client_id -> username
         }
@@ -29,25 +39,46 @@ class ConnectionManager:
         if space_name in self.rooms:
             del self.rooms[space_name]
 
-    def add_client_to_room(self, space_name: str, client_id: str, websocket: WebSocket, username: str = ''):
+    def add_client_to_room(
+        self,
+        space_name: str,
+        client_id: str,
+        websocket: WebSocket,
+        username: str = '',
+        is_host: bool = False
+    ) -> str:
+        """
+        Returns:
+            'ok'   – successfully joined
+            'full' – room is at MAX_ROOM_CAPACITY
+        """
         room = self.get_room(space_name)
-        if room:
-            if len(room['clients']) >= 2:
-                return "full"
-            room['clients'][client_id] = websocket
-            room['usernames'][client_id] = username
-            return True
-        return False
+        if not room:
+            return 'no_room'
+        if len(room['clients']) >= MAX_ROOM_CAPACITY:
+            return 'full'
+        room['clients'][client_id] = websocket
+        room['usernames'][client_id] = username
+        if is_host and room['host_client_id'] is None:
+            room['host_client_id'] = client_id
+        return 'ok'
 
     def remove_client_from_room(self, space_name: str, client_id: str):
         room = self.get_room(space_name)
         if room and client_id in room['clients']:
             del room['clients'][client_id]
             room['usernames'].pop(client_id, None)
+            # If the host left, clear the host_client_id
+            if room.get('host_client_id') == client_id:
+                room['host_client_id'] = None
 
-    async def kick_user(self, space_name: str, username: str) -> bool:
-        """Send a 'kicked' message to a user and remove them from the room."""
-        import json
+    async def kick_user(
+        self,
+        space_name: str,
+        username: str,
+        kick_message: str = ''
+    ) -> bool:
+        """Send a 'kicked' message to a user with an optional custom reason, then remove them."""
         room = self.get_room(space_name)
         if not room:
             return False
@@ -61,17 +92,24 @@ class ConnectionManager:
         ws = room['clients'].get(target_id)
         if ws:
             try:
-                await ws.send_text(json.dumps({'type': 'kicked'}))
+                await ws.send_text(json.dumps({
+                    'type': 'kicked',
+                    'message': kick_message or 'You have been removed by the administrator.'
+                }))
             except Exception:
                 pass
         self.remove_client_from_room(space_name, target_id)
         return True
 
-    async def broadcast_to_room(self, space_name: str, message: dict, exclude_client_id: str = None):
+    async def broadcast_to_room(
+        self,
+        space_name: str,
+        message: dict,
+        exclude_client_id: Optional[str] = None
+    ):
         room = self.get_room(space_name)
         if not room:
             return
-        
         dead_clients = []
         for cid, conn in list(room['clients'].items()):
             if exclude_client_id and cid == exclude_client_id:
@@ -81,8 +119,6 @@ class ConnectionManager:
             except Exception as e:
                 logger.error(f"Error broadcasting to {cid}: {e}")
                 dead_clients.append(cid)
-                
-        # Cleanup dead connections
         for cid in dead_clients:
             self.remove_client_from_room(space_name, cid)
 
@@ -96,7 +132,17 @@ class ConnectionManager:
                 logger.error(f"Error sending to {client_id}: {e}")
                 self.remove_client_from_room(space_name, client_id)
 
-    # Admin Methods
+    def get_room_users(self, space_name: str) -> list:
+        """Return list of {client_id, username} for users in a room."""
+        room = self.get_room(space_name)
+        if not room:
+            return []
+        return [
+            {'client_id': cid, 'username': uname, 'is_host': cid == room.get('host_client_id')}
+            for cid, uname in room['usernames'].items()
+        ]
+
+    # ── Admin Methods ──
     def add_admin(self, client_id: str, websocket: WebSocket):
         self.admin_connections[client_id] = websocket
 
@@ -113,5 +159,6 @@ class ConnectionManager:
                 dead_admins.append(cid)
         for cid in dead_admins:
             self.remove_admin(cid)
+
 
 manager = ConnectionManager()

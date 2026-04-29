@@ -22,6 +22,15 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+input, textarea, .chat-log-terminal {
+    -webkit-user-select: auto;
+    user-select: auto;
 }
 
 body {
@@ -34,6 +43,7 @@ body {
     align-items: center;
     overflow: hidden;
     position: relative;
+    overscroll-behavior-y: none;
 }
 
 /* ── Background ── */
@@ -711,8 +721,7 @@ body {
     border: 1px solid var(--panel-border);
     border-radius: 14px;
     padding: 14px;
-    max-height: 220px;
-    overflow-y: auto;
+    min-height: 180px; /* Make containers visually larger */
 }
 
 .admin-panel h3 {
@@ -724,8 +733,9 @@ body {
 }
 
 .intercept-panel {
-    background: rgba(0, 0, 0, 0.35);
-    border-color: rgba(240, 74, 74, 0.25);
+    background: rgba(20, 0, 0, 0.35);
+    border-color: rgba(244, 63, 94, 0.3);
+    box-shadow: 0 0 20px rgba(244, 63, 94, 0.1);
 }
 
 .admin-table {
@@ -748,8 +758,6 @@ body {
 
 .chat-log-terminal {
     min-height: 120px;
-    max-height: 160px;
-    overflow-y: auto;
     font-family: monospace;
     font-size: 0.8rem;
     color: #0f0;
@@ -1568,3 +1576,208 @@ body {
     cursor: pointer; transition: background 0.2s, transform 0.15s;
 }
 .admin-delete-btn:hover { background: rgba(240,74,74,0.25); transform: scale(1.05); }
+
+/* ── Group Video Grid ── */
+.group-video-grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    background: #000;
+    gap: 2px;
+    overflow: hidden;
+}
+.group-video-grid[data-count="0"] { display: none; }
+.group-video-grid[data-count="1"] { grid-template-columns: 1fr; }
+.group-video-grid[data-count="2"] { grid-template-columns: 1fr 1fr; }
+.group-video-grid[data-count="3"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+.group-video-grid[data-count="4"] { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+
+.video-tile {
+    position: relative;
+    overflow: hidden;
+    background: #111;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.video-tile video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.video-tile-label {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(6px);
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    pointer-events: none;
+}
+
+/* ── Kick Admin Modal ── */
+.kick-reasons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 12px 0 8px;
+}
+.kick-reason-btn {
+    background: rgba(240,74,74,0.1);
+    border: 1px solid rgba(240,74,74,0.25);
+    color: var(--error);
+    border-radius: 20px;
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: var(--font-family);
+    transition: all 0.2s;
+}
+.kick-reason-btn:hover, .kick-reason-btn.selected {
+    background: rgba(240,74,74,0.28);
+    border-color: var(--error);
+    transform: translateY(-1px);
+}
+.kick-msg-input {
+    width: 100%;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: white;
+    font-family: var(--font-family);
+    font-size: 0.9rem;
+    outline: none;
+    resize: none;
+    margin-top: 8px;
+    transition: border-color 0.2s;
+}
+.kick-msg-input:focus { border-color: var(--error); }
+
+/* ── Kicked Overlay ── */
+.kicked-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    backdrop-filter: blur(12px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    animation: fadeIn 0.4s ease;
+}
+.kicked-overlay.hidden { display: none !important; }
+.kicked-card {
+    text-align: center;
+    max-width: 340px;
+    width: 100%;
+    background: rgba(240,74,74,0.08);
+    border: 1px solid rgba(240,74,74,0.3);
+    border-radius: 24px;
+    padding: 40px 28px;
+    animation: scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+.kicked-icon {
+    width: 80px; height: 80px;
+    background: linear-gradient(135deg,#f04a4a,#c53030);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2.2rem; color: white;
+    margin: 0 auto 20px;
+    box-shadow: 0 0 40px rgba(240,74,74,0.4);
+    animation: pulse 2s infinite;
+}
+.kicked-card h2 { font-size: 1.4rem; margin-bottom: 10px; }
+.kicked-card p {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    margin-bottom: 0;
+}
+
+/* ── vc-btn hover/active ── */
+.vc-btn:hover { background: rgba(255,255,255,0.2); transform: scale(1.08); }
+.vc-btn.muted-active { background: rgba(240,74,74,0.3) !important; color: var(--error) !important; }
+.end-call-btn { background: var(--error) !important; }
+.end-call-btn:hover { background: #c53030 !important; }
+
+/* ── Premium Features Extensions ── */
+
+.recording {
+    color: var(--error) !important;
+    animation: pulseRecording 1.5s infinite;
+}
+@keyframes pulseRecording {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(240, 74, 74, 0.4); }
+    50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(240, 74, 74, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(240, 74, 74, 0); }
+}
+
+.voice-transcript {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-style: italic;
+    background: rgba(0,0,0,0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border-left: 2px solid var(--accent);
+}
+
+.file-message video, .file-message img {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    transition: transform 0.2s;
+}
+.file-message img:hover {
+    transform: scale(1.02);
+}
+
+/* ── Hide Scrollbars Globally ── */
+*::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Edge, Opera */
+}
+
+* {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+/* ── Media Queries (Responsive Layout) ── */
+@media (max-width: 768px) {
+    .container {
+        width: 95%;
+        max-width: 100%;
+        padding: 16px;
+    }
+    
+    .admin-grid {
+        grid-template-columns: 1fr; /* Stack vertically */
+    }
+    
+    .video-controls {
+        flex-wrap: wrap; /* Wrap buttons on small screens */
+        justify-content: center;
+    }
+    
+    .chat-log-terminal {
+        font-size: 0.75rem;
+    }
+
+    h1 {
+        font-size: 1.8rem;
+    }
+    
+    h2 {
+        font-size: 1.4rem;
+    }
+
+    .message {
+        font-size: 0.9rem;
+    }
+}

@@ -1,34 +1,31 @@
+/**
+ * HABIB TEXT — Mesh P2P Connection Manager
+ * Supports up to 4 simultaneous peers via WebRTC Mesh topology.
+ * Each remote peer gets its own RTCPeerConnection + DataChannel.
+ */
 class P2PConnection {
     constructor(onMessage, onConnectionStateChange, onTrack, onCallSignal) {
-        this.peerConnection = null;
-        this.dataChannel = null;
-        this.ws = null;
-        this.clientId = this.generateId();
-        this.onMessage = onMessage;
+        this.ws             = null;
+        this.clientId       = this.generateId();
+        this.myUsername     = '';
+        this.peerName       = '';    // legacy: first peer name (for 1-to-1 compat)
+
+        // Mesh: Map<remotePeerId, { pc: RTCPeerConnection, dc: RTCDataChannel, username: string }>
+        this.peers = new Map();
+
+        this.onMessage              = onMessage;
         this.onConnectionStateChange = onConnectionStateChange;
-        this.onTrack = onTrack;
-        this.onCallSignal = onCallSignal; // function(type, senderName)
-        
-        // ICE servers: STUN for discovery, TURN as relay fallback (required behind NAT/firewalls)
+        this.onTrack                = onTrack;
+        this.onCallSignal           = onCallSignal;
+
+        // Auth fail reason (for UI)
+        this.authReason = null;
+
+        // ICE configuration
         this.configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                {
-                    urls: 'turn:openrelay.metered.ca:80',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                },
-                {
-                    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-                    username: 'openrelayproject',
-                    credential: 'openrelayproject'
-                }
+                { urls: 'stun:stun1.l.google.com:19302' }
             ]
         };
     }
@@ -37,158 +34,271 @@ class P2PConnection {
         return Math.random().toString(36).substring(2, 15);
     }
 
+    // ── Signaling ──────────────────────────────────────────────────────────────
+
     connectSignaling(serverIp, pin, myUsername, hostUsername) {
+        this.myUsername = myUsername;
+
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const host = window.location.host;
-        const wsUrl = `${protocol}//${host}/ws/${this.clientId}`;
-        
+        const host     = window.location.host;
+        const wsUrl    = `${protocol}//${host}/ws/${this.clientId}`;
+
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
-            console.log("Signaling connected");
-            // Both host and joiner send auth — host authenticates into their own room
-            this.sendSignalingMessage('auth', { pin: pin, username: myUsername, host_username: hostUsername });
+            console.log('[Signaling] Connected');
+            this.sendSignalingMessage('auth', {
+                pin,
+                username: myUsername,
+                host_username: hostUsername
+            });
         };
 
         this.ws.onmessage = async (event) => {
-            const message = JSON.parse(event.data);
-            
-            switch (message.type) {
-                case 'auth_success':
-                    console.log("Authenticated!");
-                    if (message.host_username) {
-                        this.peerName = message.host_username;
-                    }
-                    this.initializePeerConnection();
-                    // Only the JOINER (not the host) sends the WebRTC offer
-                    // The host is myUsername === hostUsername, so they wait
-                    if (myUsername !== hostUsername) {
-                        this.createOffer();
-                    }
-                    break;
-                    
-                case 'auth_fail':
-                    console.error("Authentication failed:", message.reason || "Invalid PIN");
-                    this.authReason = message.reason;
-                    this.onConnectionStateChange('failed_auth');
-                    break;
+            const msg = JSON.parse(event.data);
+            await this._handleSignalingMessage(msg, myUsername, hostUsername);
+        };
 
-                case 'kicked':
-                    console.warn("You have been kicked by the admin.");
-                    this.onConnectionStateChange('kicked');
-                    break;
+        this.ws.onerror = (err) => {
+            console.error('[Signaling] Error:', err);
+            this.onConnectionStateChange('disconnected');
+        };
 
-                case 'offer': {
-                    console.log("Received offer");
-                    if (!this.peerConnection) this.initializePeerConnection();
-                    await this.peerConnection.setRemoteDescription(new RTCSessionDescription(message.data));
-                    const answer = await this.peerConnection.createAnswer();
-                    await this.peerConnection.setLocalDescription(answer);
-                    this.sendSignalingMessage('answer', answer, message.sender);
-                    break;
+        this.ws.onclose = () => {
+            console.log('[Signaling] Closed');
+        };
+    }
+
+    async _handleSignalingMessage(msg, myUsername, hostUsername) {
+        switch (msg.type) {
+
+            case 'auth_success': {
+                console.log('[Auth] Success. Existing peers:', msg.existing_peers);
+                this.myClientId = msg.your_client_id || this.clientId;
+
+                // For each already-connected peer, we (the new joiner) create the offer
+                if (msg.existing_peers && msg.existing_peers.length > 0) {
+                    for (const peer of msg.existing_peers) {
+                        this.peerName = peer.username || 'Peer';
+                        const pc = this._createPeerConnection(peer.client_id, peer.username, true);
+                    }
+                } else {
+                    // First in the room (the host) — just wait for peers to arrive
+                    console.log('[Auth] Waiting for peers to join...');
                 }
+                break;
+            }
 
-                case 'answer':
-                    console.log("Received answer");
-                    await this.peerConnection.setRemoteDescription(new RTCSessionDescription(message.data));
-                    break;
+            case 'auth_fail': {
+                console.error('[Auth] Failed:', msg.reason, msg.message);
+                this.authReason = msg.reason;
+                this.authMessage = msg.message || '';
+                this.onConnectionStateChange('failed_auth');
+                break;
+            }
 
-                case 'candidate':
-                    console.log("Received ICE candidate");
-                    if (this.peerConnection) {
-                        await this.peerConnection.addIceCandidate(new RTCIceCandidate(message.data));
-                    }
-                    break;
+            case 'kicked': {
+                console.warn('[Signaling] Kicked:', msg.message);
+                this.kickMessage = msg.message || 'You have been removed by the administrator.';
+                this.onConnectionStateChange('kicked');
+                break;
+            }
 
-                case 'peer_joined':
-                    console.log("Peer joined:", message.username);
-                    this.peerName = message.username;
-                    break;
+            case 'peer_joined': {
+                const { clientId, username } = msg;
+                console.log('[Mesh] Peer joined:', username, clientId);
+                this.peerName = username;
+                // Notify UI
+                if (this.onConnectionStateChange) {
+                    this.onConnectionStateChange('peer_joining', { clientId, username });
+                }
+                
+                // Wait for the new peer to send us an offer.
+                // The offer case will handle creating the PeerConnection and DataChannel.
+                break;
+            }
 
-                case 'peer_disconnected':
-                    console.log("Peer disconnected");
+            case 'peer_disconnected': {
+                const peerId = msg.peer_id;
+                console.log('[Mesh] Peer disconnected:', peerId);
+                this._removePeer(peerId);
+                // If no peers left → disconnected
+                if (this.peers.size === 0) {
                     this.onConnectionStateChange('disconnected');
-                    break;
-                    
-                // Call Signaling
-                case 'call_request':
-                case 'call_accepted':
-                case 'call_declined':
-                    if (this.onCallSignal) {
-                        this.onCallSignal(message.type, message.sender); // Or we can use username if we sent it
+                } else {
+                    this.onConnectionStateChange('peer_left', { clientId: peerId });
+                }
+                break;
+            }
+
+            case 'offer': {
+                const senderId = msg.sender;
+                const offerPayload = msg.data;
+                const remoteSdp = offerPayload.sdp || msg.data; // fallback for backwards compatibility
+                const remoteUsername = offerPayload.username || '';
+                
+                console.log('[Mesh] Received offer from', senderId, remoteUsername);
+                
+                // Create PC for this sender if not exists
+                if (!this.peers.has(senderId)) {
+                    this._createPeerConnection(senderId, remoteUsername, false);
+                } else if (remoteUsername) {
+                    // Update username if it was previously empty
+                    this.peers.get(senderId).username = remoteUsername;
+                }
+                
+                const peerObj = this.peers.get(senderId);
+                await peerObj.pc.setRemoteDescription(new RTCSessionDescription(remoteSdp));
+                const answer = await peerObj.pc.createAnswer();
+                await peerObj.pc.setLocalDescription(answer);
+                this.sendSignalingMessage('answer', answer, senderId);
+                break;
+            }
+
+            case 'answer': {
+                const senderId = msg.sender;
+                console.log('[Mesh] Received answer from', senderId);
+                const peerObj = this.peers.get(senderId);
+                if (peerObj) {
+                    await peerObj.pc.setRemoteDescription(new RTCSessionDescription(msg.data));
+                }
+                break;
+            }
+
+            case 'candidate': {
+                const senderId = msg.sender;
+                const peerObj = this.peers.get(senderId);
+                if (peerObj && msg.data) {
+                    try {
+                        await peerObj.pc.addIceCandidate(new RTCIceCandidate(msg.data));
+                    } catch (e) {
+                        console.warn('[ICE] Candidate error:', e);
                     }
-                    break;
+                }
+                break;
             }
-        };
 
-        this.ws.onerror = (error) => {
-            console.error("WebSocket error:", error);
-            this.onConnectionStateChange('disconnected');
-        };
+            case 'call_request':
+            case 'call_accepted':
+            case 'call_declined': {
+                if (this.onCallSignal) {
+                    this.onCallSignal(msg.type, msg.sender, msg.data);
+                }
+                break;
+            }
+
+            case 'admin_broadcast': {
+                this.onConnectionStateChange('admin_broadcast', { message: msg.message });
+                break;
+            }
+
+            case 'host_disconnected': {
+                this.onConnectionStateChange('disconnected');
+                break;
+            }
+        }
     }
 
-    initializePeerConnection() {
-        this.peerConnection = new RTCPeerConnection(this.configuration);
+    // ── Peer Connection Management ─────────────────────────────────────────────
 
-        this.peerConnection.onicecandidate = (event) => {
+    _createPeerConnection(remotePeerId, remoteUsername, isInitiator = false) {
+        const pc = new RTCPeerConnection(this.configuration);
+        this.peers.set(remotePeerId, { pc, dc: null, username: remoteUsername });
+
+        pc.onicecandidate = (event) => {
             if (event.candidate) {
-                this.sendSignalingMessage('candidate', event.candidate);
+                this.sendSignalingMessage('candidate', event.candidate, remotePeerId);
             }
         };
 
-        this.peerConnection.ontrack = (event) => {
+        if (isInitiator) {
+            const dc = pc.createDataChannel('p2p-chat');
+            this._setupDataChannel(dc, remotePeerId);
+            this.peers.get(remotePeerId).dc = dc;
+            
+            pc.createOffer().then(offer => {
+                return pc.setLocalDescription(offer).then(() => offer);
+            }).then(offer => {
+                this.sendSignalingMessage('offer', { sdp: offer, username: this.myName }, remotePeerId);
+            }).catch(e => console.error('[Mesh] Manual offer error:', e));
+        }
+
+        pc.ontrack = (event) => {
             if (this.onTrack && event.streams && event.streams[0]) {
-                this.onTrack(event.streams[0]);
+                this.onTrack(event.streams[0], remotePeerId, remoteUsername);
             }
         };
 
-        this.peerConnection.onconnectionstatechange = () => {
-            const state = this.peerConnection.connectionState;
-            console.log("Connection state:", state);
-            // Only propagate terminal states to avoid spurious 'disconnected' flashes
-            if (state === 'connected' || state === 'failed' || state === 'closed') {
-                this.onConnectionStateChange(state === 'connected' ? 'connected' : 'disconnected');
+        pc.ondatachannel = (event) => {
+            const dc = event.channel;
+            this._setupDataChannel(dc, remotePeerId);
+            this.peers.get(remotePeerId).dc = dc;
+        };
+
+        pc.onconnectionstatechange = () => {
+            const state = pc.connectionState;
+            console.log(`[Mesh] Peer ${remotePeerId} state: ${state}`);
+            if (state === 'connected') {
+                this.onConnectionStateChange('connected', { clientId: remotePeerId, username: remoteUsername });
+            } else if (state === 'failed' || state === 'closed') {
+                this._removePeer(remotePeerId);
+                if (this.peers.size === 0) {
+                    this.onConnectionStateChange('disconnected');
+                } else {
+                    this.onConnectionStateChange('peer_left', { clientId: remotePeerId });
+                }
             }
         };
 
-        // Create Data Channel
-        this.dataChannel = this.peerConnection.createDataChannel('p2p_channel');
-        this.setupDataChannel();
-
-        this.peerConnection.ondatachannel = (event) => {
-            this.dataChannel = event.channel;
-            this.setupDataChannel();
-        };
+        return pc;
     }
 
-    setupDataChannel() {
-        this.dataChannel.binaryType = 'arraybuffer';
-        
-        this.dataChannel.onopen = () => {
-            console.log("Data channel open!");
-            this.onConnectionStateChange('connected');
+    _setupDataChannel(dc, remotePeerId) {
+        dc.binaryType = 'arraybuffer';
+
+        dc.onopen = () => {
+            console.log(`[DataChannel] Open with ${remotePeerId}`);
+            const peerObj = this.peers.get(remotePeerId);
+            if (peerObj) {
+                this.onConnectionStateChange('connected', {
+                    clientId: remotePeerId,
+                    username: peerObj.username
+                });
+            }
         };
-        
-        this.dataChannel.onmessage = (event) => {
+
+        dc.onmessage = (event) => {
             if (typeof event.data === 'string') {
-                const message = JSON.parse(event.data);
-                this.onMessage(message);
+                try {
+                    const message = JSON.parse(event.data);
+                    message._fromPeerId = remotePeerId;
+                    this.onMessage(message);
+                } catch (e) {
+                    console.error('[DataChannel] JSON parse error:', e);
+                }
             } else {
-                this.onMessage({ type: 'file_data', data: event.data });
+                this.onMessage({ type: 'file_data', data: event.data, _fromPeerId: remotePeerId });
             }
         };
-        
-        this.dataChannel.onclose = () => {
-            console.log("Data channel closed");
-            this.onConnectionStateChange('disconnected');
+
+        dc.onclose = () => {
+            console.log(`[DataChannel] Closed with ${remotePeerId}`);
         };
     }
 
-    async createOffer() {
-        const offer = await this.peerConnection.createOffer();
-        await this.peerConnection.setLocalDescription(offer);
-        this.sendSignalingMessage('offer', offer);
+    _removePeer(remotePeerId) {
+        const peerObj = this.peers.get(remotePeerId);
+        if (peerObj) {
+            try {
+                if (peerObj.dc) peerObj.dc.close();
+                peerObj.pc.close();
+            } catch (e) { /* ignore */ }
+            this.peers.delete(remotePeerId);
+            console.log(`[Mesh] Removed peer ${remotePeerId}. Remaining:`, this.peers.size);
+        }
     }
+
+    // ── Sending ────────────────────────────────────────────────────────────────
 
     sendSignalingMessage(type, data, target = null) {
         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
@@ -196,78 +306,149 @@ class P2PConnection {
         }
     }
 
+    /**
+     * Send a JSON message to ALL connected peers via their data channels.
+     */
     send(message) {
-        if (this.dataChannel && this.dataChannel.readyState === 'open') {
-            this.dataChannel.send(JSON.stringify(message));
-        } else {
-            console.error("Data channel is not open");
+        const payload = JSON.stringify(message);
+        let sent = 0;
+        for (const [peerId, peerObj] of this.peers) {
+            if (peerObj.dc && peerObj.dc.readyState === 'open') {
+                peerObj.dc.send(payload);
+                sent++;
+            }
+        }
+        if (sent === 0) {
+            console.warn('[DataChannel] No open channels to send to');
+        }
+    }
+
+    /**
+     * Send a JSON message to a specific peer only.
+     */
+    sendToPeer(peerId, message) {
+        const peerObj = this.peers.get(peerId);
+        if (peerObj && peerObj.dc && peerObj.dc.readyState === 'open') {
+            peerObj.dc.send(JSON.stringify(message));
         }
     }
 
     sendFileMetadata(fileMeta) {
-        // Pass ALL fields through (name, size, fileType, vanish, id, etc.)
-        this.send({
-            type: 'file_meta',
-            ...fileMeta
-        });
+        this.send({ type: 'file_meta', ...fileMeta });
     }
 
     sendFileData(arrayBuffer) {
-        if (this.dataChannel && this.dataChannel.readyState === 'open') {
-            this.dataChannel.send(arrayBuffer);
+        for (const [peerId, peerObj] of this.peers) {
+            if (peerObj.dc && peerObj.dc.readyState === 'open') {
+                peerObj.dc.send(arrayBuffer);
+            }
         }
     }
 
-    async startAudio(stream) {
-        if (!this.peerConnection) return;
-        stream.getTracks().forEach(track => {
-            this.peerConnection.addTrack(track, stream);
-        });
-        await this.createOffer();
+    /**
+     * Get the first open data channel (for bufferedAmount checks during file send).
+     */
+    get dataChannel() {
+        for (const [, peerObj] of this.peers) {
+            if (peerObj.dc) return peerObj.dc;
+        }
+        return null;
     }
 
+    // ── Media (Group Call) ─────────────────────────────────────────────────────
+
+    /**
+     * Add a local media stream to ALL peer connections and renegotiate.
+     */
+    async startMedia(stream) {
+        const offers = [];
+        for (const [peerId, peerObj] of this.peers) {
+            // Remove old senders first
+            peerObj.pc.getSenders().forEach(s => peerObj.pc.removeTrack(s));
+            stream.getTracks().forEach(track => peerObj.pc.addTrack(track, stream));
+            const offer = await peerObj.pc.createOffer();
+            await peerObj.pc.setLocalDescription(offer);
+            this.sendSignalingMessage('offer', offer, peerId);
+            offers.push(peerId);
+        }
+        return offers.length > 0;
+    }
+
+    /**
+     * Stop all local media tracks and renegotiate.
+     */
+    async stopMedia() {
+        for (const [peerId, peerObj] of this.peers) {
+            peerObj.pc.getSenders().forEach(s => {
+                if (s.track) s.track.stop();
+                peerObj.pc.removeTrack(s);
+            });
+            const offer = await peerObj.pc.createOffer();
+            await peerObj.pc.setLocalDescription(offer);
+            this.sendSignalingMessage('offer', offer, peerId);
+        }
+    }
+
+    // Legacy aliases so existing app.js call sites still work
+    async startAudio(stream) { return this.startMedia(stream); }
     async stopAudio(stream) {
-        if (!this.peerConnection) return;
-        stream.getTracks().forEach(track => {
-            const sender = this.peerConnection.getSenders().find(s => s.track === track);
-            if (sender) this.peerConnection.removeTrack(sender);
-            track.stop();
-        });
-        await this.createOffer();
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        return this.stopMedia();
     }
-
-    // ── Video Call ──
-    async startVideo(stream) {
-        if (!this.peerConnection) return;
-        // Remove any existing tracks first
-        this.peerConnection.getSenders().forEach(sender => {
-            this.peerConnection.removeTrack(sender);
-        });
-        stream.getTracks().forEach(track => {
-            this.peerConnection.addTrack(track, stream);
-        });
-        await this.createOffer();
-    }
-
+    async startVideo(stream) { return this.startMedia(stream); }
     stopVideo() {
-        if (!this.peerConnection) return;
-        this.peerConnection.getSenders().forEach(sender => {
-            if (sender.track) sender.track.stop();
-            this.peerConnection.removeTrack(sender);
-        });
+        for (const [, peerObj] of this.peers) {
+            peerObj.pc.getSenders().forEach(s => {
+                if (s.track) s.track.stop();
+                peerObj.pc.removeTrack(s);
+            });
+        }
     }
 
     async replaceVideoTrack(newTrack) {
-        if (!this.peerConnection) return;
-        
-        const senders = this.peerConnection.getSenders();
-        const videoSender = senders.find(sender => sender.track && sender.track.kind === 'video');
-        
-        if (videoSender) {
-            await videoSender.replaceTrack(newTrack);
-        } else {
-            this.peerConnection.addTrack(newTrack);
-            await this.createOffer();
+        for (const [peerId, peerObj] of this.peers) {
+            const sender = peerObj.pc.getSenders().find(s => s.track && s.track.kind === 'video');
+            if (sender) {
+                await sender.replaceTrack(newTrack);
+            } else {
+                peerObj.pc.addTrack(newTrack);
+                const offer = await peerObj.pc.createOffer();
+                await peerObj.pc.setLocalDescription(offer);
+                this.sendSignalingMessage('offer', offer, peerId);
+            }
+        }
+    }
+
+    // ── Utility ────────────────────────────────────────────────────────────────
+
+    /**
+     * Returns true if at least one data channel is open (legacy compatibility).
+     */
+    isConnected() {
+        for (const [, peerObj] of this.peers) {
+            if (peerObj.dc && peerObj.dc.readyState === 'open') return true;
+        }
+        return false;
+    }
+
+    getPeerCount() {
+        return this.peers.size;
+    }
+
+    getPeerList() {
+        return [...this.peers.entries()].map(([id, obj]) => ({
+            clientId: id,
+            username: obj.username
+        }));
+    }
+
+    disconnect() {
+        for (const [id] of this.peers) {
+            this._removePeer(id);
+        }
+        if (this.ws) {
+            this.ws.close();
+            this.ws = null;
         }
     }
 }

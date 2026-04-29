@@ -133,43 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
-    // ── Particles Background ──
-    const canvas = document.getElementById('particles-canvas');
-    const ctx = canvas.getContext('2d');
-    let particles = [];
-
-    function resizeCanvas() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-    }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-
-    for (let i = 0; i < 60; i++) {
-        particles.push({
-            x: Math.random() * window.innerWidth,
-            y: Math.random() * window.innerHeight,
-            r: Math.random() * 1.5 + 0.5,
-            dx: (Math.random() - 0.5) * 0.3,
-            dy: (Math.random() - 0.5) * 0.3,
-            alpha: Math.random() * 0.5 + 0.1,
-        });
-    }
-
-    function animateParticles() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        particles.forEach(p => {
-            p.x += p.dx; p.y += p.dy;
-            if (p.x < 0 || p.x > canvas.width)  p.dx *= -1;
-            if (p.y < 0 || p.y > canvas.height) p.dy *= -1;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(139,92,246,${p.alpha})`;
-            ctx.fill();
-        });
-        requestAnimationFrame(animateParticles);
-    }
-    animateParticles();
+    // Removed Particles Background to prevent device heating
 
     // ── Auth Elements ──
     const authTitle       = document.getElementById('auth-title');
@@ -240,6 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     // ✅ Login success
                     myUsername = username;
+                    myPassword = password;
                     document.getElementById('welcome-username').textContent = `Hello, ${username} 👋`;
                     screenHistory = []; // Reset history at login
                     if (data.role === 'admin') {
@@ -271,7 +236,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         adminWs = new WebSocket(`${protocol}//${window.location.host}/ws/admin_${Math.random().toString(36).substring(7)}`);
-        adminWs.onopen = () => adminWs.send(JSON.stringify({ type: 'admin_auth', data: { password: 'Habib@215' } }));
+        adminWs.onopen = () => adminWs.send(JSON.stringify({ type: 'admin_auth', data: { username: myUsername, password: myPassword } }));
         adminWs.onmessage = (event) => {
             const msg = JSON.parse(event.data);
             if (msg.type === 'admin_chat_log') {
@@ -296,12 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const ul = document.getElementById('admin-hosts-ul');
                 ul.innerHTML = data.active_hosts_list.length === 0
                     ? '<li class="muted-li">No active spaces.</li>'
-                    : data.active_hosts_list.map(h =>
-                        `<li style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05)">
-                            <span><i class="ph ph-shield-check" style="color:var(--success)"></i> <strong>${h.hostname}</strong> <span style="opacity:0.5;font-size:0.8em">(${h.clients} connected)</span></span>
-                            <button onclick="kickUserFromRoom('${h.hostname}','${h.hostname}')" class="admin-kick-btn"><i class="ph ph-user-minus"></i> Kick</button>
-                        </li>`
-                      ).join('');
+                    : data.active_hosts_list.map(h => {
+                        const userBtns = (h.users || []).map(u =>
+                            `<button onclick="openKickModal('${h.hostname}','${u.username}')" class="admin-kick-btn" style="margin:2px 2px 0 0"><i class="ph ph-user-minus"></i> ${u.username}${u.is_host ? ' ★' : ''}</button>`
+                        ).join('');
+                        return `<li style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><div style="display:flex;align-items:center;justify-content:space-between"><span><i class="ph ph-shield-check" style="color:var(--success)"></i> <strong>${h.hostname}</strong> <span style="opacity:0.5;font-size:0.8em">(${h.clients})</span></span></div><div style="margin-top:6px;flex-wrap:wrap;display:flex">${userBtns}</div></li>`;
+                    }).join('');
 
                 const tbody = document.getElementById('admin-users-tbody');
                 tbody.innerHTML = (data.user_list || []).map(u =>
@@ -309,7 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <td style="padding:7px 0">${u.id}</td>
                         <td style="padding:7px 0">${u.username}</td>
                         <td style="padding:7px 0;text-align:right">
-                            ${u.username !== 'HABIB_Admin' ? `<button onclick="deleteRegisteredUser('${u.username}')" class="admin-delete-btn"><i class="ph ph-trash"></i></button>` : '<span style="opacity:0.3;font-size:0.8em">Protected</span>'}
+                            ${['HABIB_Admin', 'Gayathri'].includes(u.username) ? '<span style="opacity:0.3;font-size:0.8em">Protected</span>' : `<button onclick="deleteRegisteredUser('${u.username}')" class="admin-delete-btn"><i class="ph ph-trash"></i></button>`}
                         </td>
                     </tr>`
                 ).join('');
@@ -317,16 +282,17 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) { console.error('Admin stats error', e); }
     };
 
+    window.openKickModal = (spaceName, username) => {
+        kickTargetUsername = username;
+        kickTargetRoom = spaceName;
+        document.getElementById('kick-modal-target').textContent = username;
+        document.getElementById('kick-custom-msg').value = '';
+        document.querySelectorAll('.kick-reason-btn').forEach(b => b.classList.remove('selected'));
+        document.getElementById('kick-admin-modal').classList.remove('hidden');
+    };
+
     window.kickUserFromRoom = async (spaceName, username) => {
-        if (!confirm(`Kick "${username}" from "${spaceName}"?`)) return;
-        const res = await fetch('/api/admin/kick', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ admin_username: myUsername, target_username: username, space_name: spaceName })
-        });
-        const data = await res.json();
-        showToast(data.status === 'success' ? `Kicked ${username}!` : data.message, data.status === 'success' ? 'success' : 'error');
-        fetchAdminStats();
+        openKickModal(spaceName, username);
     };
 
     window.deleteRegisteredUser = async (username) => {
@@ -395,6 +361,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 activeRoomName = spaceName;
                 initWebRTC(null, pin, myUsername, spaceName);
                 history.pushState({ hosting: true }, '', location.href);
+            } else {
+                const hostError = document.getElementById('host-error');
+                if (hostError) hostError.textContent = data.message || 'Failed to create space.';
+                showToast(data.message || 'Space name already in use.', 'error');
             }
         } catch (err) { console.error('Host start error', err); }
     });
@@ -442,48 +412,95 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── State ──
     let p2p             = null;
     let myUsername      = '';
+    let myPassword      = '';
     let activeRoomName  = '';
-    let receivingFileMeta = null;
-    let receiveBuffer   = [];
-    let receivedSize    = 0;
+    const fileReceives = {}; // Maps _fromPeerId to { meta, buffer, size }
     let localVideoStream = null;
     let isVideoCalling  = false;
     let isMuted         = false;
     let isCamOff        = false;
     let callTimerInterval = null;
     let callSeconds     = 0;
+    
+    // ── Ping System ──
+    let pingInterval = null;
+    const updatePingUI = (rtt) => {
+        const pingEl = document.getElementById('ping-indicator');
+        if (pingEl) {
+            pingEl.classList.remove('hidden');
+            let color = '#10b981'; // Green
+            if (rtt > 150) color = '#f04a4a'; // Red
+            else if (rtt > 80) color = '#ffcc00'; // Yellow
+            pingEl.innerHTML = `<span style="color:${color}">${rtt}ms</span>`;
+        }
+    };
 
     // ── Connection State ──
     const statusDot  = document.querySelector('.dot');
     const statusText = document.querySelector('.status-text');
 
-    const setConnectionState = (state) => {
+    const setConnectionState = (state, data = null) => {
         const videoCallBtn = document.getElementById('video-call-btn');
         if (state === 'connected') {
             statusDot.classList.add('connected');
-            statusText.textContent = `Connected to ${p2p?.peerName || 'Peer'}`;
-            showScreen(chatScreen);
+            const cnt = p2p?.getPeerCount() || 1;
+            statusText.textContent = cnt > 1 ? `Group (${cnt} peers)` : `Connected to ${data?.username || p2p?.peerName || 'Peer'}`;
+            if (!chatScreen.classList.contains('active')) showScreen(chatScreen);
             videoCallBtn.classList.remove('hidden');
+            if (data?.username) addMessage(`${data.username} joined the room. 🎉`, 'system');
+            
+            // Start Ping
+            if (!pingInterval) {
+                pingInterval = setInterval(() => {
+                    if (p2p && p2p.isConnected()) {
+                        const peerList = p2p.getPeerList();
+                        if (peerList.length > 0) {
+                            p2p.sendToPeer(peerList[0].clientId, { type: 'ping', timestamp: Date.now() });
+                        }
+                    }
+                }, 2000);
+            }
+        } else if (state === 'peer_joining') {
+            if (data?.username) addMessage(`${data.username} is connecting...`, 'system');
+        } else if (state === 'peer_left') {
+            if (data?.clientId) removeRemoteVideoTile(data.clientId);
+            const cnt = p2p?.getPeerCount() || 0;
+            if (cnt > 0) {
+                statusText.textContent = `Group (${cnt} peer${cnt > 1 ? 's' : ''})`;
+            } else {
+                statusDot.classList.remove('connected');
+                statusText.textContent = 'Offline';
+                videoCallBtn.classList.add('hidden');
+                if (isVideoCalling) endVideoCall();
+                if (chatScreen.classList.contains('active')) goBackUI();
+            }
+            addMessage('A peer has left the room.', 'system');
         } else if (state === 'disconnected') {
             statusDot.classList.remove('connected');
             statusText.textContent = 'Offline';
             videoCallBtn.classList.add('hidden');
+            if (pingInterval) { clearInterval(pingInterval); pingInterval = null; }
+            document.getElementById('ping-indicator')?.classList.add('hidden');
             if (isVideoCalling) endVideoCall();
-            // Go back to dashboard
-            if (chatScreen.classList.contains('active')) {
-                goBackUI();
-            }
+            if (chatScreen.classList.contains('active')) goBackUI();
         } else if (state === 'failed_auth') {
-            if (p2p?.authReason === 'full') {
-                joinError.textContent = 'Room is full! Please use a different space name.';
-            } else {
-                joinError.textContent = 'Invalid PIN or host not found.';
-            }
+            const reason = p2p?.authReason;
+            joinError.textContent = p2p?.authMessage || (reason === 'full' ? 'Room is full! Max 4 people.' : reason === 'host_taken' ? 'Space name already taken by another host.' : 'Invalid PIN or host not found.');
             document.getElementById('join-pin').value = '';
         } else if (state === 'kicked') {
-            showToast('You have been removed by the Admin.', 'error');
-            if (p2p && p2p.ws) { p2p.ws.close(); p2p = null; }
+            showKickedOverlay(p2p?.kickMessage || 'You have been removed by the administrator.');
+            if (p2p) { p2p.disconnect(); p2p = null; }
             if (chatScreen.classList.contains('active')) goBackUI();
+        } else if (state === 'admin_broadcast') {
+            const overlay = document.createElement('div');
+            overlay.className = 'kicked-overlay';
+            overlay.innerHTML = `<div class="kicked-card" style="background:rgba(240,180,0,0.1); border-color:rgba(240,180,0,0.3)">
+                <div class="kicked-icon" style="background:#ffcc00; color:#000; box-shadow:0 0 40px rgba(240,180,0,0.4)"><i class="ph ph-megaphone"></i></div>
+                <h2 style="color:#ffcc00">System Broadcast</h2>
+                <p>${data?.message || 'Important update.'}</p>
+                <button class="btn" style="background:#ffcc00; color:#000; width:100%; margin-top:20px; font-weight:bold" onclick="this.parentElement.parentElement.remove()">Acknowledge</button>
+            </div>`;
+            document.body.appendChild(overlay);
         }
     };
 
@@ -582,7 +599,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isVanish) div.classList.add('vanish-msg');
         
         let html = '';
-        if (fileMeta.name.endsWith('_voice_note.webm')) {
+        if (fileMeta.name.endsWith('_voice_note.webm') || fileMeta.isVoiceNote) {
             const transcriptHtml = fileMeta.transcript ? `<div class="voice-transcript">AI: "${fileMeta.transcript}"</div>` : '';
             if (type === 'received' && fileBlob) {
                 const url = URL.createObjectURL(fileBlob);
@@ -590,10 +607,22 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 html = `<i class="ph ph-microphone file-icon" style="color:var(--accent)"></i><div class="file-info"><span class="file-name">Voice Note</span><span class="file-size" style="margin-top:4px">Sent ✓</span>${transcriptHtml}</div>`;
             }
+        } else if (fileMeta.fileType?.startsWith('image/')) {
+            if (type === 'received' && fileBlob) {
+                const url = URL.createObjectURL(fileBlob);
+                html = `<img src="${url}" style="max-width:100%; max-height:200px; border-radius:8px; cursor:pointer;" onclick="window.open('${url}')"><div class="file-info" style="margin-top:4px"><span class="file-name" style="font-size:0.7rem">${fileMeta.name}</span><button class="file-download" style="margin-top:2px; padding:2px 8px" onclick="const a=document.createElement('a');a.href='${url}';a.download='${fileMeta.name}';a.click()"><i class="ph ph-download-simple"></i></button></div>`;
+            } else {
+                html = `<i class="ph ph-image file-icon"></i><div class="file-info"><span class="file-name">${fileMeta.name}</span><span class="file-size">Sent ✓</span></div>`;
+            }
+        } else if (fileMeta.fileType?.startsWith('video/')) {
+            if (type === 'received' && fileBlob) {
+                const url = URL.createObjectURL(fileBlob);
+                html = `<video controls src="${url}" style="max-width:100%; max-height:200px; border-radius:8px;"></video><div class="file-info" style="margin-top:4px"><span class="file-name" style="font-size:0.7rem">${fileMeta.name}</span><button class="file-download" style="margin-top:2px; padding:2px 8px" onclick="const a=document.createElement('a');a.href='${url}';a.download='${fileMeta.name}';a.click()"><i class="ph ph-download-simple"></i></button></div>`;
+            } else {
+                html = `<i class="ph ph-video file-icon"></i><div class="file-info"><span class="file-name">${fileMeta.name}</span><span class="file-size">Sent ✓</span></div>`;
+            }
         } else {
             let icon = 'ph-file';
-            if (fileMeta.fileType?.startsWith('image/')) icon = 'ph-image';
-            else if (fileMeta.fileType?.startsWith('video/')) icon = 'ph-video';
             html = `<i class="ph ${icon} file-icon"></i><div class="file-info"><span class="file-name">${fileMeta.name}</span><span class="file-size">${formatBytes(fileMeta.size)}</span>`;
             if (type === 'received' && fileBlob) {
                 const url = URL.createObjectURL(fileBlob);
@@ -615,6 +644,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 10000);
         }
     };
+
 
     const formatBytes = (bytes, dec = 2) => {
         if (!+bytes) return '0 Bytes';
@@ -641,40 +671,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── WebRTC Init ──
     const initWebRTC = (serverIp, pin, myName, hostName) => {
         p2p = new P2PConnection(
-            (msg)           => handleIncomingData(msg),
-            (state)         => setConnectionState(state),
-            (stream)        => handleRemoteStream(stream),
-            (type, sender)  => handleCallSignal(type, sender)
+            (msg)                   => handleIncomingData(msg),
+            (state, data)           => setConnectionState(state, data),
+            (stream, peerId, uname) => {
+                if (stream.getVideoTracks().length > 0) addRemoteVideoTile(stream, peerId, uname);
+                else { const a = document.getElementById('remote-audio'); if (a) a.srcObject = stream; }
+            },
+            (type, sender, d)       => handleCallSignal(type, sender, d)
         );
         p2p.connectSignaling(serverIp, pin, myName, hostName);
     };
 
-    const handleRemoteStream = (stream) => {
-        const remoteVideo = document.getElementById('remote-video');
-        const remoteAudio = document.getElementById('remote-audio');
-        if (stream.getVideoTracks().length > 0) {
-            remoteVideo.srcObject = stream;
-        } else {
-            remoteAudio.srcObject = stream;
-        }
-    };
-
     const handleIncomingData = (msg) => {
-        if (msg.type === 'text') {
+        if (msg.type === 'ping') {
+            if (p2p?.dataChannel?.readyState === 'open' || p2p?.isConnected()) {
+                p2p.sendToPeer(msg._fromPeerId, { type: 'pong', timestamp: msg.timestamp });
+            }
+        } else if (msg.type === 'pong') {
+            const rtt = Date.now() - msg.timestamp;
+            updatePingUI(rtt);
+        } else if (msg.type === 'text') {
             addMessage(msg.content, 'received', msg.senderName, msg.vanish, msg.id);
         } else if (msg.type === 'reaction') {
             addReactionToMessage(msg.messageId, msg.emoji);
         } else if (msg.type === 'incall_text') {
             addIncallMessage(msg.content, 'received', msg.senderName);
         } else if (msg.type === 'file_meta') {
-            receivingFileMeta = msg; receiveBuffer = []; receivedSize = 0;
+            const peerId = msg._fromPeerId || 'unknown';
+            fileReceives[peerId] = { meta: msg, buffer: [], size: 0 };
         } else if (msg.type === 'file_data') {
-            receiveBuffer.push(msg.data);
-            receivedSize += msg.data.byteLength;
-            if (receivedSize === receivingFileMeta.size) {
-                const blob = new Blob(receiveBuffer, { type: receivingFileMeta.fileType });
-                addFileMessage(receivingFileMeta, 'received', blob, receivingFileMeta.vanish, receivingFileMeta.id);
-                receivingFileMeta = null; receiveBuffer = [];
+            const peerId = msg._fromPeerId || 'unknown';
+            const transfer = fileReceives[peerId];
+            if (transfer && transfer.meta) {
+                transfer.buffer.push(msg.data);
+                transfer.size += msg.data.byteLength;
+                if (transfer.size === transfer.meta.size) {
+                    const blob = new Blob(transfer.buffer, { type: transfer.meta.fileType });
+                    addFileMessage(transfer.meta, 'received', blob, transfer.meta.vanish, transfer.meta.id);
+                    delete fileReceives[peerId];
+                }
             }
         } else if (msg.type === 'typing') {
             const ind = document.getElementById('typing-indicator');
@@ -720,15 +755,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const progressFilename  = document.getElementById('progress-filename');
     const progressSpeed     = document.getElementById('progress-speed');
 
-    const updateUploadProgress = (sent, total, startTime, filename) => {
+    const updateUploadProgress = (sent, total, filename, speed) => {
         const pct = Math.round((sent / total) * 100);
-        const elapsed = (Date.now() - startTime) / 1000 || 0.001;
-        const kbps = ((sent / 1024) / elapsed).toFixed(1);
+        const kbps = (speed / 1024).toFixed(1);
+        const display = kbps > 1024 ? (kbps / 1024).toFixed(2) + ' MB/s' : kbps + ' KB/s';
         if (uploadProgressEl) uploadProgressEl.classList.remove('hidden');
         if (progressBarFill)  progressBarFill.style.width = pct + '%';
         if (progressPercent)  progressPercent.textContent = pct + '%';
         if (progressFilename) progressFilename.textContent = filename;
-        if (progressSpeed)    progressSpeed.textContent = kbps + ' KB/s';
+        if (progressSpeed)    progressSpeed.textContent = display;
         if (pct >= 100) {
             setTimeout(() => { if (uploadProgressEl) uploadProgressEl.classList.add('hidden'); }, 1500);
         }
@@ -746,16 +781,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const buf = ev.target.result;
             const CHUNK = 16384;
             let offset = 0;
-            const startTime = Date.now();
+            let lastChunkTime = Date.now();
             const send = () => {
                 while (offset < buf.byteLength) {
-                    if (p2p.dataChannel.bufferedAmount > p2p.dataChannel.bufferedAmountLowThreshold) {
-                        p2p.dataChannel.onbufferedamountlow = () => { p2p.dataChannel.onbufferedamountlow = null; send(); };
+                    const dc = p2p.dataChannel;
+                    if (dc && dc.bufferedAmount > (dc.bufferedAmountLowThreshold || 65536)) {
+                        dc.onbufferedamountlow = () => { dc.onbufferedamountlow = null; send(); };
                         return;
                     }
-                    p2p.sendFileData(buf.slice(offset, offset + CHUNK));
-                    offset += CHUNK;
-                    updateUploadProgress(Math.min(offset, buf.byteLength), buf.byteLength, startTime, file.name);
+                    const chunkSize = Math.min(CHUNK, buf.byteLength - offset);
+                    p2p.sendFileData(buf.slice(offset, offset + chunkSize));
+                    const now = Date.now();
+                    const elapsed = Math.max((now - lastChunkTime) / 1000, 0.001);
+                    lastChunkTime = now;
+                    offset += chunkSize;
+                    updateUploadProgress(Math.min(offset, buf.byteLength), buf.byteLength, file.name, chunkSize / elapsed);
                 }
             };
             send();
@@ -908,16 +948,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const startVideoCall = async () => {
         try {
-            localVideoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            const constraints = {
+                audio: true,
+                video: { width: { ideal: 1280, max: 1920 }, height: { ideal: 720, max: 1080 }, frameRate: { ideal: 30, max: 60 } }
+            };
+            localVideoStream = await navigator.mediaDevices.getUserMedia(constraints);
             document.getElementById('local-video').srcObject = localVideoStream;
-            document.getElementById('video-peer-name').textContent = p2p?.peerName || 'Peer';
+            const cnt = p2p?.getPeerCount() || 1;
+            document.getElementById('video-peer-name').textContent = cnt > 1 ? `Group Call (${cnt} peers)` : (p2p?.peerName || 'Peer');
             videoOverlay.classList.remove('hidden');
             isVideoCalling = true;
             isMuted = false; isCamOff = false;
             muteBtn.innerHTML = '<i class="ph ph-microphone"></i>';
             camOffBtn.innerHTML = '<i class="ph ph-video-camera"></i>';
             startCallTimer();
-            await p2p.startVideo(localVideoStream);
+            await p2p.startMedia(localVideoStream);
         } catch (err) {
             console.error('Camera/mic error:', err);
             showToast('Cannot access camera or mic.', 'error');
@@ -927,16 +972,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const endVideoCall = () => {
         isVideoCalling = false;
         videoOverlay.classList.add('hidden');
-        // Restore video elements in case it was audio-only
-        document.getElementById('remote-video').style.display = '';
+        const grid = document.getElementById('group-video-grid');
+        if (grid) grid.innerHTML = '';
         document.getElementById('local-video').style.display = '';
         videoOverlay.style.background = '';
         if (localVideoStream) {
             localVideoStream.getTracks().forEach(t => t.stop());
             localVideoStream = null;
         }
-        document.getElementById('local-video').srcObject  = null;
-        document.getElementById('remote-video').srcObject = null;
+        document.getElementById('local-video').srcObject = null;
         if (callTimerInterval) { clearInterval(callTimerInterval); callTimerInterval = null; }
         videoCallBtn.classList.remove('active');
         videoCallBtn.innerHTML = '<i class="ph ph-phone"></i>';
@@ -989,23 +1033,21 @@ document.addEventListener('DOMContentLoaded', () => {
         cancelCallTypeBtn.addEventListener('click', () => callTypeModal.classList.add('hidden'));
     }
 
+
     // ── Audio-Only Call Start ──
     const startAudioCall = async () => {
         try {
             localVideoStream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
             document.getElementById('video-peer-name').textContent = p2p?.peerName || 'Peer';
             videoOverlay.classList.remove('hidden');
-            // Hide video elements for audio-only mode
-            document.getElementById('remote-video').style.display = 'none';
             document.getElementById('local-video').style.display = 'none';
             videoOverlay.style.background = 'linear-gradient(135deg,#0f162880,#1a103880)';
-            isVideoCalling = true;
-            isMuted = false; isCamOff = true;
+            isVideoCalling = true; isMuted = false; isCamOff = true;
             muteBtn.innerHTML = '<i class="ph ph-microphone"></i>';
             camOffBtn.innerHTML = '<i class="ph ph-video-camera-slash"></i>';
             camOffBtn.classList.add('muted-active');
             startCallTimer();
-            await p2p.startVideo(localVideoStream);
+            await p2p.startMedia(localVideoStream);
         } catch (err) {
             console.error('Mic error for audio call:', err);
             showToast('Cannot access microphone.', 'error');
@@ -1057,7 +1099,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!isVideoCalling) return;
         if (!isScreenSharing) {
             try {
-                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+                screenStream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 10, max: 15 } } });
                 const screenTrack = screenStream.getVideoTracks()[0];
                 screenTrack.onended = () => stopScreenShare();
                 await p2p.replaceVideoTrack(screenTrack);
@@ -1247,6 +1289,75 @@ document.addEventListener('DOMContentLoaded', () => {
         smartRepliesBar.classList.remove('hidden');
     };
  
+    // ── Group Video Grid ──
+    const addRemoteVideoTile = (stream, peerId, username) => {
+        removeRemoteVideoTile(peerId);
+        const grid = document.getElementById('group-video-grid');
+        if (!grid) return;
+        const tile = document.createElement('div');
+        tile.className = 'video-tile';
+        tile.dataset.peerId = peerId;
+        const video = document.createElement('video');
+        video.autoplay = true; video.playsInline = true; video.srcObject = stream;
+        const label = document.createElement('div');
+        label.className = 'video-tile-label';
+        label.textContent = username || 'Peer';
+        tile.appendChild(video); tile.appendChild(label);
+        grid.appendChild(tile);
+        grid.dataset.count = grid.querySelectorAll('.video-tile').length;
+    };
+
+    const removeRemoteVideoTile = (peerId) => {
+        if (!peerId) return;
+        const tile = document.querySelector(`.video-tile[data-peer-id="${peerId}"]`);
+        if (tile) tile.remove();
+        const grid = document.getElementById('group-video-grid');
+        if (grid) grid.dataset.count = grid.querySelectorAll('.video-tile').length;
+    };
+
+    // ── Kicked Overlay ──
+    const showKickedOverlay = (message) => {
+        const overlay = document.getElementById('kicked-overlay');
+        const msgEl   = document.getElementById('kicked-message');
+        if (overlay) { if (msgEl) msgEl.textContent = message; overlay.classList.remove('hidden'); }
+    };
+
+    document.getElementById('kicked-ok-btn')?.addEventListener('click', () => {
+        document.getElementById('kicked-overlay').classList.add('hidden');
+        showScreen(dashboardScreen, false);
+        history.replaceState({ depth: 0 }, '', location.href);
+        screenHistory = [];
+    });
+
+    // ── Kick Admin Modal ──
+    let kickTargetUsername = '', kickTargetRoom = '';
+
+    document.querySelectorAll('.kick-reason-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.kick-reason-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            document.getElementById('kick-custom-msg').value = btn.dataset.reason;
+        });
+    });
+
+    document.getElementById('kick-confirm-btn')?.addEventListener('click', async () => {
+        const msg = document.getElementById('kick-custom-msg').value.trim() || 'You have been removed by the administrator.';
+        document.getElementById('kick-admin-modal').classList.add('hidden');
+        const res = await fetch('/api/admin/kick', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ admin_username: myUsername, target_username: kickTargetUsername, space_name: kickTargetRoom, kick_message: msg })
+        });
+        const data = await res.json();
+        showToast(data.status === 'success' ? `Kicked ${kickTargetUsername}!` : data.message, data.status === 'success' ? 'success' : 'error');
+        fetchAdminStats();
+    });
+
+    document.getElementById('kick-cancel-btn')?.addEventListener('click', () => {
+        document.getElementById('kick-admin-modal').classList.add('hidden');
+    });
+
+
     if (aiAssistBtn) {
         aiAssistBtn.addEventListener('click', () => {
             if (smartRepliesBar && !smartRepliesBar.classList.contains('hidden')) {
@@ -1258,6 +1369,161 @@ document.addEventListener('DOMContentLoaded', () => {
             const lastReceived = received[received.length - 1];
             const lastText = lastReceived?.textContent?.trim() || '';
             showSmartReplies(lastText);
+        });
+    }
+
+    // ── Export Chat ──
+    const exportChatBtn = document.getElementById('export-chat-btn');
+    if (exportChatBtn) {
+        exportChatBtn.addEventListener('click', () => {
+            const msgs = [...messagesList.querySelectorAll('.message')].map(m => {
+                let text = m.innerText || m.textContent;
+                text = text.replace(/Download/g, '').replace(/Sent ✓/g, '').trim();
+                return text;
+            }).join('\n\n');
+            const blob = new Blob([msgs], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `HABIB_TEXT_Export_${new Date().toISOString().slice(0,10)}.txt`;
+            a.click();
+            showToast('Chat history exported.', 'success');
+        });
+    }
+
+    // ── Burn Room ──
+    const burnRoomBtn = document.getElementById('burn-room-btn');
+    if (burnRoomBtn) {
+        burnRoomBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to burn this room? This wipes the chat for everyone.')) {
+                messagesList.innerHTML = '';
+                if (p2p && p2p.dataChannel && p2p.dataChannel.readyState === 'open') {
+                    p2p.send({ type: 'burn_room' });
+                }
+                showToast('Room securely burned.', 'success');
+            }
+        });
+    }
+
+    // ── Admin Global Broadcast ──
+    const adminBroadcastBtn = document.getElementById('admin-broadcast-btn');
+    if (adminBroadcastBtn) {
+        adminBroadcastBtn.addEventListener('click', async () => {
+            const msgInput = document.getElementById('admin-broadcast-msg');
+            const msg = msgInput.value.trim();
+            if (!msg) return;
+            try {
+                const res = await fetch('/api/admin/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ admin_username: myUsername, message: msg })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    msgInput.value = '';
+                    showToast('Broadcast sent successfully.', 'success');
+                } else {
+                    showToast(data.message, 'error');
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        });
+    }
+
+
+    const switchSpeakerBtn = document.getElementById('switch-speaker-btn');
+    const switchCamBtn = document.getElementById('switch-cam-btn');
+    let isSpeakerMode = true; // default
+    let currentFacingMode = 'user'; // default
+
+    if (switchCamBtn) {
+        switchCamBtn.addEventListener('click', async () => {
+            if (!isVideoCalling || !localVideoStream) return;
+            // Check current track facing mode if supported
+            const videoTrack = localVideoStream.getVideoTracks()[0];
+            if (!videoTrack) return;
+            
+            currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            
+            try {
+                // Stop old track
+                videoTrack.stop();
+                
+                // Request new track
+                const videoConstraints = { facingMode: { exact: currentFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } };
+                const newStream = await navigator.mediaDevices.getUserMedia({ video: videoConstraints }).catch(async (e) => {
+                    // Fallback to ideal if exact fails
+                    return await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: currentFacingMode, width: { ideal: 1280 }, height: { ideal: 720 }, frameRate: { ideal: 30 } }
+                    });
+                });
+                
+                const newVideoTrack = newStream.getVideoTracks()[0];
+                
+                // Swap in the local stream object
+                localVideoStream.removeTrack(videoTrack);
+                localVideoStream.addTrack(newVideoTrack);
+                document.getElementById('local-video').srcObject = localVideoStream;
+                
+                // Swap in WebRTC peer connections
+                if (p2p) p2p.replaceVideoTrack(newVideoTrack);
+                
+                showToast(`Switched to ${currentFacingMode === 'user' ? 'Front' : 'Rear'} Camera`);
+            } catch (err) {
+                console.error('Camera switch error:', err);
+                showToast('Could not switch camera.', 'error');
+                // Revert state
+                currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+            }
+        });
+    }
+
+    if (switchSpeakerBtn) {
+        switchSpeakerBtn.addEventListener('click', async () => {
+            try {
+                if (!navigator.mediaDevices.enumerateDevices) {
+                    showToast('Device switching not supported on this browser.', 'error');
+                    return;
+                }
+                
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+                
+                if (audioOutputs.length < 2) {
+                    showToast('Only one audio output detected.', 'error');
+                    return;
+                }
+
+                // Simple heuristic: cycle through available audio outputs
+                isSpeakerMode = !isSpeakerMode;
+                // On mobile devices, 'earpiece' usually has a specific label, but it varies wildly.
+                // If setSinkId is supported, apply to remote audio/video elements
+                
+                const grid = document.getElementById('group-video-grid');
+                const mediaElements = [...grid.querySelectorAll('video'), document.getElementById('remote-audio')].filter(Boolean);
+                
+                // We just cycle through the first two audio outputs
+                const targetDevice = isSpeakerMode ? audioOutputs[0].deviceId : audioOutputs[1].deviceId;
+                
+                let success = false;
+                for (const media of mediaElements) {
+                    if (typeof media.setSinkId === 'function') {
+                        await media.setSinkId(targetDevice);
+                        success = true;
+                    }
+                }
+                
+                if (success) {
+                    switchSpeakerBtn.innerHTML = isSpeakerMode ? '<i class="ph ph-speaker-high"></i>' : '<i class="ph ph-earbuds"></i>';
+                    showToast(`Switched audio output`);
+                } else {
+                    showToast('Use system controls to change audio (browser blocked).', 'error');
+                }
+            } catch (err) {
+                console.error('Speaker switch error:', err);
+                showToast('Use system controls to change audio.', 'error');
+            }
         });
     }
 

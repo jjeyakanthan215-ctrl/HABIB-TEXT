@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>HABIB TEXT — Secure P2P Messenger</title>
     <meta name="description" content="HABIB TEXT: Secure peer-to-peer messaging, file transfer, and video calls.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -22,7 +22,6 @@
         <div class="blob blob-1"></div>
         <div class="blob blob-2"></div>
         <div class="blob blob-3"></div>
-        <canvas id="particles-canvas"></canvas>
     </div>
 
     <!-- Toast Notification -->
@@ -48,6 +47,7 @@
                     <i class="ph ph-phone"></i>
                 </button>
                 <div class="status-indicator" id="connection-status">
+                    <span id="ping-indicator" class="ping-indicator hidden" style="font-size:0.75rem; margin-right:8px; opacity:0.8; font-weight:600; font-family:monospace;"></span>
                     <span class="dot disconnected"></span>
                     <span class="status-text">Offline</span>
                 </div>
@@ -118,6 +118,7 @@
                     <button id="start-host-btn" class="btn primary-btn full-width" style="margin-top:12px">
                         <i class="ph ph-rocket-launch"></i> Start Hosting
                     </button>
+                    <div id="host-error" class="error-msg" style="margin-top:8px;"></div>
                 </div>
 
                 <!-- Host Waiting -->
@@ -210,6 +211,14 @@
                     </ul>
                 </div>
 
+                <div class="admin-panel" style="margin-top:16px; background:rgba(240,180,0,0.1); border-color:rgba(240,180,0,0.3)">
+                    <h3 style="color:#ffcc00"><i class="ph ph-megaphone"></i> Global Broadcast</h3>
+                    <div style="display:flex; gap:8px; margin-top:8px;">
+                        <input type="text" id="admin-broadcast-msg" placeholder="Type system alert..." class="text-input" style="flex:1">
+                        <button id="admin-broadcast-btn" class="btn" style="background:#ffcc00; color:#000; font-weight:bold"><i class="ph ph-paper-plane-right"></i> Send</button>
+                    </div>
+                </div>
+
                 <button id="admin-enter-app-btn" class="btn full-width" style="margin-top:16px; background:rgba(255,255,255,0.08); border:1px solid var(--panel-border); color:white;">
                     Continue to Chat <i class="ph ph-arrow-right"></i>
                 </button>
@@ -255,8 +264,11 @@
                             </div>
                             <span id="progress-percent" class="progress-pct">0%</span>
                         </div>
-                        <!-- Row 1: extra actions -->
                         <div class="input-actions-row">
+                            <button id="burn-room-btn" class="action-chip" style="color:var(--error); border-color:rgba(240,74,74,0.3); background:rgba(240,74,74,0.1)" title="Burn Room (Wipe Chat for All)">
+                                <i class="ph ph-fire"></i>
+                                <span>Burn</span>
+                            </button>
                             <button id="vanish-mode-btn" class="action-chip" title="Toggle Vanish Mode">
                                 <i class="ph ph-ghost"></i>
                                 <span>Vanish</span>
@@ -264,6 +276,10 @@
                             <button id="file-btn" class="action-chip" title="Attach File">
                                 <i class="ph ph-paperclip"></i>
                                 <span>Attach</span>
+                            </button>
+                            <button id="export-chat-btn" class="action-chip" title="Export Chat History">
+                                <i class="ph ph-download-simple"></i>
+                                <span>Export</span>
                             </button>
                             <button id="ai-assist-btn" class="action-chip ai-chip" title="AI Smart Reply">
                                 <i class="ph ph-magic-wand"></i>
@@ -293,7 +309,7 @@
 
     <!-- ── Video Call Overlay ── -->
     <div id="video-overlay" class="video-overlay hidden">
-        <video id="remote-video" class="remote-video" autoplay playsinline></video>
+        <div id="group-video-grid" class="group-video-grid" data-count="0"></div>
         <video id="local-video" class="local-video" autoplay playsinline muted></video>
         <div class="video-info-bar">
             <span id="video-peer-name">Peer</span>
@@ -303,11 +319,17 @@
             </button>
         </div>
         <div class="video-controls">
+            <button id="switch-speaker-btn" class="vc-btn" title="Toggle Speaker/Earpiece">
+                <i class="ph ph-speaker-high"></i>
+            </button>
             <button id="mute-btn" class="vc-btn" title="Mute">
                 <i class="ph ph-microphone"></i>
             </button>
             <button id="cam-off-btn" class="vc-btn" title="Camera Off">
                 <i class="ph ph-video-camera"></i>
+            </button>
+            <button id="switch-cam-btn" class="vc-btn" title="Flip Camera">
+                <i class="ph ph-camera-rotate"></i>
             </button>
             <button id="screen-share-btn" class="vc-btn" title="Share Screen">
                 <i class="ph ph-monitor-arrow-up"></i>
@@ -397,6 +419,37 @@
             <button id="e2ee-close-btn" class="btn full-width" style="margin-top:16px; background:rgba(255,255,255,0.08); color:white;">Close</button>
         </div>
     </div>
+    <!-- Kick Admin Modal -->
+    <div id="kick-admin-modal" class="modal hidden">
+        <div class="modal-content" style="max-width:360px">
+            <div class="caller-avatar" style="background:linear-gradient(135deg,#f04a4a,#c53030);animation:none">
+                <i class="ph ph-user-minus"></i>
+            </div>
+            <h3>Kick User</h3>
+            <p>Removing <strong id="kick-modal-target">user</strong> from the room.</p>
+            <div class="kick-reasons">
+                <button class="kick-reason-btn" data-reason="Violation of room rules.">🚫 Violation</button>
+                <button class="kick-reason-btn" data-reason="Spam or disruptive behaviour.">🗑️ Spam</button>
+                <button class="kick-reason-btn" data-reason="Unauthorized access attempt.">🔒 Unauthorized</button>
+            </div>
+            <textarea id="kick-custom-msg" class="kick-msg-input" placeholder="Or type a custom reason..." rows="2"></textarea>
+            <div class="modal-actions" style="margin-top:16px">
+                <button id="kick-confirm-btn" class="btn decline-btn" style="flex:1"><i class="ph ph-user-minus"></i> Kick</button>
+                <button id="kick-cancel-btn" class="btn" style="flex:1;background:rgba(255,255,255,0.07);color:var(--text-muted)">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kicked Notification Overlay -->
+    <div id="kicked-overlay" class="kicked-overlay hidden">
+        <div class="kicked-card">
+            <div class="kicked-icon"><i class="ph ph-prohibit"></i></div>
+            <h2>Removed from Room</h2>
+            <p id="kicked-message">You have been removed by the administrator.</p>
+            <button id="kicked-ok-btn" class="btn primary-btn" style="width:100%;margin-top:20px"><i class="ph ph-arrow-left"></i> Go Back</button>
+        </div>
+    </div>
+
     <script src="/static/js/webrtc.js"></script>
     <script src="/static/js/app.js"></script>
 </body>

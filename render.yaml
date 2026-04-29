@@ -2,12 +2,19 @@ services:
   - type: web
     name: habib-text
     env: python
-    region: singapore   # Change to 'oregon' or 'frankfurt' if closer to your users
+    region: singapore
     plan: free
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT --workers 1
+    startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT --workers 1 --ws websockets
+    healthCheckPath: /health
     envVars:
       - key: PYTHON_VERSION
-        value: "3.11.0"
+        value: "3.11.9"
       - key: DB_PATH
-        value: users.db   # Ephemeral disk path for free tier
+        value: /data/users.db
+      - key: RENDER
+        value: "true"
+    disk:
+      name: habib-text-data
+      mountPath: /data
+      sizeGB: 1

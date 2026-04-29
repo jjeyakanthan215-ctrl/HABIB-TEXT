@@ -23,31 +23,52 @@ templates = Jinja2Templates(directory="frontend")
 
 mdns_service = None
 
+ADMIN_USERS = ["HABIB_Admin", "Gayathri"]
+
+
 class AuthData(BaseModel):
     username: str
     password: str
+
 
 class HostStart(BaseModel):
     username: str
     space_name: str
     pin: str
 
+
 class HostStop(BaseModel):
     space_name: str
+
 
 class AdminAction(BaseModel):
     admin_username: str
     target_username: str
     space_name: str = ''
+    kick_message: str = ''   # custom kick reason
+
+
+class AdminBroadcast(BaseModel):
+    admin_username: str
+    message: str
+
 
 @app.on_event("startup")
 async def startup_event():
     logger.info("Server started. Waiting for host setup...")
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     if mdns_service:
         mdns_service.stop()
+
+
+@app.get("/health")
+async def health_check():
+    """Render uses this to verify the service is running."""
+    return {"status": "ok"}
+
 
 @app.get("/", response_class=HTMLResponse)
 async def get_index(request: Request):
@@ -57,11 +78,13 @@ async def get_index(request: Request):
         }
     )
 
+
 @app.post("/api/auth/register")
 async def register_user(data: AuthData):
     if create_user(data.username, data.password):
         return {"status": "success"}
     return {"status": "error", "message": "Username already exists"}
+
 
 @app.post("/api/auth/login")
 async def login_user(data: AuthData):
@@ -70,27 +93,28 @@ async def login_user(data: AuthData):
         return {"status": "success", "role": role}
     return {"status": "error", "message": "Invalid credentials"}
 
+
 @app.get("/api/admin/stats")
 async def get_admin_stats(username: str = None):
-    # Basic security check
-    # Note: A real app should use token-based authentication for APIs.
-    if username != "HABIB_Admin":
+    if username not in ADMIN_USERS:
         return {"status": "error", "message": "Unauthorized"}
-        
+
     total_users = get_total_users()
     active_hosts_count = len(manager.rooms)
-    
+
     total_connections = 0
     active_hosts_list = []
-    
+
     for host_uname, room_data in manager.rooms.items():
-        client_count = len(room_data.get('clients', {}))
+        users_in_room = manager.get_room_users(host_uname)
+        client_count = len(users_in_room)
         total_connections += client_count
         active_hosts_list.append({
             "hostname": host_uname,
-            "clients": client_count
+            "clients": client_count,
+            "users": users_in_room   # ← per-user list for targeted kick
         })
-        
+
     return {
         "status": "success",
         "total_users": total_users,
@@ -100,49 +124,73 @@ async def get_admin_stats(username: str = None):
         "user_list": get_all_users()
     }
 
+
 @app.post("/api/admin/kick")
 async def kick_user_from_room(data: AdminAction):
-    if data.admin_username != "HABIB_Admin":
+    if data.admin_username not in ADMIN_USERS:
         return {"status": "error", "message": "Unauthorized"}
-    success = await manager.kick_user(data.space_name, data.target_username)
+    success = await manager.kick_user(data.space_name, data.target_username, data.kick_message)
     if success:
         return {"status": "success", "message": f"{data.target_username} has been kicked."}
     return {"status": "error", "message": "User not found in room."}
 
+
 @app.delete("/api/admin/delete_user")
 async def delete_registered_user(data: AdminAction):
-    if data.admin_username != "HABIB_Admin":
+    if data.admin_username not in ADMIN_USERS:
         return {"status": "error", "message": "Unauthorized"}
     success = delete_user(data.target_username)
     if success:
         return {"status": "success", "message": f"{data.target_username} deleted."}
     return {"status": "error", "message": "Cannot delete admin or user not found."}
 
+
+@app.post("/api/admin/broadcast")
+async def admin_broadcast(data: AdminBroadcast):
+    if data.admin_username not in ADMIN_USERS:
+        return {"status": "error", "message": "Unauthorized"}
+    
+    payload = {
+        "type": "admin_broadcast",
+        "message": data.message
+    }
+    # Broadcast to all active rooms
+    for space_name in manager.rooms.keys():
+        await manager.broadcast_to_room(space_name, payload)
+    
+    return {"status": "success", "message": "Broadcast sent to all active spaces."}
+
+
 @app.post("/api/host/start")
 async def start_hosting(data: HostStart):
     global mdns_service
-    
+
     if not manager.create_room(data.space_name, data.username, data.pin):
-        return {"status": "error", "message": "Space name already in use"}
-    
-    # Try mDNS for local network discovery
+        return {"status": "error", "message": "Space name already in use. Please choose a different name."}
+
+    render_url = os.environ.get("RENDER_EXTERNAL_URL", "")
+    is_cloud   = bool(render_url or os.environ.get("RENDER"))
+
     try:
-        if mdns_service is None:
-            port = int(os.environ.get("PORT", 8006))
-            mdns_service = MDNSService(port=port)
-            mdns_service.start()
-        connect_url = f"http://{mdns_service.ip}:{mdns_service.port}"
+        if is_cloud:
+            connect_url = render_url or "https://your-app.onrender.com"
+        else:
+            if mdns_service is None:
+                port = int(os.environ.get("PORT", 8006))
+                mdns_service = MDNSService(port=port)
+                mdns_service.start()
+            connect_url = f"http://{mdns_service.ip}:{mdns_service.port}"
     except Exception:
-        # On cloud deployments mDNS is not available
-        connect_url = os.environ.get("RENDER_EXTERNAL_URL", "http://localhost:8006")
-    
+        connect_url = render_url or "http://localhost:8006"
+
     qr_base64 = generate_qr_base64(connect_url)
-    
+
     return {
         "status": "success",
         "qr_code": qr_base64,
         "server_ip": connect_url
     }
+
 
 @app.post("/api/host/stop")
 async def stop_hosting(data: HostStop):
@@ -154,54 +202,87 @@ async def stop_hosting(data: HostStop):
 @app.websocket("/ws/{client_id}")
 async def websocket_endpoint(websocket: WebSocket, client_id: str):
     await websocket.accept()
-    
+
     current_room = None
-    
+
     try:
         while True:
             data = await websocket.receive_text()
             message = json.loads(data)
-            
+
+            # ── Auth ──
             if message.get("type") == "auth":
-                space_name = message.get("data", {}).get("host_username") # In JS, it sends 'host_username' as space_name
-                provided_pin = message.get("data", {}).get("pin")
+                space_name      = message.get("data", {}).get("host_username")
+                provided_pin    = message.get("data", {}).get("pin")
                 client_username = message.get("data", {}).get("username")
-                
+
                 room = manager.get_room(space_name)
                 if not room:
-                    await websocket.send_text(json.dumps({"type": "auth_fail"}))
+                    await websocket.send_text(json.dumps({"type": "auth_fail", "reason": "no_room"}))
                     continue
-                
-                is_host = (client_username == room['host_username'])
+
+                # Determine if this connection is the legitimate host:
+                # Either the host slot is unclaimed and the username matches, OR
+                # this exact client_id is already the registered host.
+                claiming_host = (client_username == room['host_username'])
+                host_slot_taken = room['host_client_id'] is not None
+
+                if claiming_host and host_slot_taken and room['host_client_id'] != client_id:
+                    # Someone else is pretending to be the host — reject
+                    await websocket.send_text(json.dumps({
+                        "type": "auth_fail",
+                        "reason": "host_taken",
+                        "message": "This space name is already hosted by someone else. Please choose a different name."
+                    }))
+                    continue
+
                 pin_ok = (room['pin'] == provided_pin) or (room['pin'] == '' and provided_pin == '')
-                
-                if is_host or pin_ok:
-                    current_room = space_name
-                    result = manager.add_client_to_room(space_name, client_id, websocket, client_username)
-                    
+
+                if claiming_host or pin_ok:
+                    result = manager.add_client_to_room(
+                        space_name, client_id, websocket,
+                        client_username, is_host=claiming_host
+                    )
+
                     if result == "full":
-                        await websocket.send_text(json.dumps({"type": "auth_fail", "reason": "full"}))
+                        await websocket.send_text(json.dumps({
+                            "type": "auth_fail",
+                            "reason": "full",
+                            "message": "This room is full (max 4 people). Please try a different space."
+                        }))
                         continue
-                        
+
+                    current_room = space_name
+
+                    # Send list of already-connected peers to the new joiner
+                    existing_peers = [
+                        {"client_id": cid, "username": uname}
+                        for cid, uname in room['usernames'].items()
+                        if cid != client_id
+                    ]
+
                     await websocket.send_text(json.dumps({
                         "type": "auth_success",
                         "host_username": room['host_username'],
-                        "space_name": space_name
+                        "space_name": space_name,
+                        "your_client_id": client_id,
+                        "existing_peers": existing_peers
                     }))
-                    
-                    # Notify others in the room
+
+                    # Notify others that a new peer joined
                     await manager.broadcast_to_room(
-                        space_name, 
-                        {"type": "peer_joined", "username": client_username},
+                        space_name,
+                        {"type": "peer_joined", "username": client_username, "client_id": client_id},
                         exclude_client_id=client_id
                     )
                 else:
-                    await websocket.send_text(json.dumps({"type": "auth_fail"}))
-                    
+                    await websocket.send_text(json.dumps({"type": "auth_fail", "reason": "wrong_pin"}))
+
+            # ── Admin Auth ──
             elif message.get("type") == "admin_auth":
-                username = message.get("data", {}).get("username", "HABIB_Admin")
+                username     = message.get("data", {}).get("username", "HABIB_Admin")
                 provided_pwd = message.get("data", {}).get("password")
-                
+
                 role = verify_user(username, provided_pwd)
                 if role == 'admin':
                     manager.add_admin(client_id, websocket)
@@ -209,28 +290,38 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 else:
                     await websocket.send_text(json.dumps({"type": "auth_fail"}))
 
+            # ── Admin Chat Log Forward ──
             elif message.get("type") == "admin_chat_log":
                 await manager.broadcast_to_admins(message)
-                        
-            elif current_room and message.get("type") in ["offer", "answer", "candidate", "call_request", "call_accepted", "call_declined", "typing"]:
+
+            # ── WebRTC Signaling (targeted) ──
+            elif current_room and message.get("type") in [
+                "offer", "answer", "candidate",
+                "call_request", "call_accepted", "call_declined",
+                "typing"
+            ]:
                 target = message.get("target")
-                
+
                 if target:
-                    await manager.send_to_client(current_room, target, message)
+                    # Targeted relay — used in mesh for peer-specific signaling
+                    await manager.send_to_client(current_room, target, {
+                        **message,
+                        "sender": client_id
+                    })
                 else:
-                    # Broadcast to others in room
+                    # Broadcast to all others in room
                     payload = {
                         "type": message.get("type"),
                         "sender": client_id,
                         "data": message.get("data")
                     }
                     await manager.broadcast_to_room(current_room, payload, exclude_client_id=client_id)
-                            
+
     except WebSocketDisconnect:
         if current_room:
             manager.remove_client_from_room(current_room, client_id)
             await manager.broadcast_to_room(
-                current_room, 
+                current_room,
                 {"type": "peer_disconnected", "peer_id": client_id}
             )
         manager.remove_admin(client_id)

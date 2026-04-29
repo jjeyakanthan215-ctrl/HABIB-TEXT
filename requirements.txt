@@ -7,19 +7,16 @@ fastapi==0.115.12
 # ASGI server (with WebSocket & HTTP/2 support)
 uvicorn[standard]==0.34.2
 
-# WebSocket library (used internally by FastAPI)
+# WebSocket library
 websockets==15.0.1
-
-# Local network discovery via mDNS/Zeroconf
-zeroconf==0.146.0
 
 # QR code generation
 qrcode[pil]==8.2
 
-# HTML templating (used by FastAPI for serving index.html)
+# HTML templating
 jinja2==3.1.6
 
-# Multipart form handling (file uploads)
+# Multipart form handling
 python-multipart==0.0.20
 
 # Image processing (required by qrcode[pil])
@@ -27,3 +24,6 @@ pillow==11.2.1
 
 # Secure password hashing
 bcrypt==4.1.2
+
+# Local network discovery via mDNS (optional – gracefully skipped on cloud)
+zeroconf==0.146.0
