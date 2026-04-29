@@ -742,19 +742,17 @@ const HABIB = {
                     e.statusText.textContent = `Group (${cnt} peers)`;
                 } else {
                     e.statusDot.classList.remove('connected');
-                    e.statusText.textContent = 'Offline';
+                    e.statusText.textContent = 'Peer Offline';
                     e.videoCallBtn.classList.add('hidden');
                     HABIB.call.end();
-                    if (e.chatScreen.classList.contains('active')) HABIB.navigation.goBack();
                 }
-                this.addMessage('A peer has left the room.', 'system');
+                this.addMessage('A peer has left the room. You can send offline messages.', 'system');
             } else if (state === 'disconnected') {
                 e.statusDot.classList.remove('connected');
-                e.statusText.textContent = 'Offline';
+                e.statusText.textContent = 'Disconnected';
                 e.videoCallBtn.classList.add('hidden');
                 this.stopPingLoop();
                 HABIB.call.end();
-                if (e.chatScreen.classList.contains('active')) HABIB.navigation.goBack();
             } else if (state === 'failed_auth') {
                 e.authError.textContent = HABIB.state.p2p.authMessage || 'Invalid PIN or host not found.';
             } else if (state === 'kicked') {

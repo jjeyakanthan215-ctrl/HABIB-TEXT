@@ -179,6 +179,9 @@ body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .header-actions {
@@ -322,6 +325,13 @@ body {
     gap: 8px;
     font-size: 0.82rem;
     color: var(--text-muted);
+}
+
+.status-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 140px;
 }
 
 .dot {
@@ -737,6 +747,7 @@ body {
     width: 100%;
     border-collapse: collapse;
     font-size: 0.85rem;
+    table-layout: fixed;
 }
 
 .admin-table th {
@@ -749,6 +760,7 @@ body {
 .admin-table td {
     padding: 7px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    word-break: break-all;
 }
 
 .chat-log-terminal {
@@ -809,6 +821,8 @@ body {
     font-size: 0.93rem;
     line-height: 1.45;
     word-break: break-word;
+    overflow-wrap: anywhere;
+    white-space: pre-wrap;
     animation: popIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
     transition: transform 0.2s ease, filter 0.2s ease;
 }
