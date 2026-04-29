@@ -81,12 +81,12 @@ async def get_index(request: Request):
 
 @app.get("/manifest.json")
 async def get_manifest():
-    return FileResponse("frontend/manifest.json")
+    return FileResponse("frontend/manifest.json", media_type="application/manifest+json")
 
 
 @app.get("/sw.js")
 async def get_sw():
-    return FileResponse("frontend/sw.js")
+    return FileResponse("frontend/sw.js", media_type="application/javascript")
 
 
 @app.post("/api/auth/register")
