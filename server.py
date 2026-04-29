@@ -2,7 +2,7 @@ import json
 import logging
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import os
@@ -77,6 +77,16 @@ async def get_index(request: Request):
             "server_ip": mdns_service.ip if mdns_service else "127.0.0.1"
         }
     )
+
+
+@app.get("/manifest.json")
+async def get_manifest():
+    return FileResponse("frontend/manifest.json")
+
+
+@app.get("/sw.js")
+async def get_sw():
+    return FileResponse("frontend/sw.js")
 
 
 @app.post("/api/auth/register")

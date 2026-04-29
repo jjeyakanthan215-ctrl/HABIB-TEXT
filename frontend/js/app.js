@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // ── PWA Service Worker ──
     if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/sw.js').catch(err => console.error('SW sync error', err));
+        navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW sync error', err));
     }
 
     // ── Screens ──
