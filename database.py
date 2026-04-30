@@ -44,12 +44,12 @@ def init_db():
     except Exception:
         pass  # Column already exists, that's fine
     # Ensure admin role is set for the default admin users
-    cursor.execute("UPDATE users SET role = 'admin' WHERE username IN ('HABIB_Admin', 'Gayathri') AND (role IS NULL OR role = 'user')")
+    cursor.execute("UPDATE users SET role = 'admin' WHERE username IN ('ESCTRIX_Admin', 'Gayathri') AND (role IS NULL OR role = 'user')")
     conn.commit()
     conn.close()
 
     # Create default admin users if they do not exist
-    create_user('HABIB_Admin', 'Habib@215', role='admin')
+    create_user('ESCTRIX_Admin', 'Esctrix@215', role='admin')
     create_user('Gayathri', 'Gayu215', role='admin')
 
 def hash_password(password: str) -> str:
@@ -121,7 +121,7 @@ def get_all_users():
 
 def delete_user(username: str) -> bool:
     """Permanently delete a registered user. Admin accounts are protected."""
-    if username in ['HABIB_Admin', 'Gayathri']:
+    if username in ['ESCTRIX_Admin', 'Gayathri']:
         return False
     conn = get_db()
     cursor = conn.cursor()

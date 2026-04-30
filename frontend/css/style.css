@@ -367,6 +367,13 @@ body {
     transform: translateX(40px);
     transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     will-change: transform, opacity;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none; /* Firefox */
+}
+
+.screen::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
 }
 
 .screen:not(.active) {
@@ -566,6 +573,21 @@ body {
     border-radius: 14px;
     display: inline-block;
     margin: 16px auto;
+    position: relative;
+    box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7);
+    animation: qr-pulse 2s infinite;
+}
+
+@keyframes qr-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(139, 92, 246, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(139, 92, 246, 0);
+    }
 }
 
 .qr-container img {
@@ -842,6 +864,13 @@ body {
         transform: scale(1);
         opacity: 1;
     }
+}
+
+.sender-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 2px;
 }
 
 .message.system {

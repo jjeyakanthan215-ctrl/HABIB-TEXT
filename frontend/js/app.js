@@ -1032,7 +1032,7 @@ const ESCTRIX = {
 
         renderUsers(list) {
             const tbody = ESCTRIX.elements.adminUsersTbody;
-            const protected = ['HABIB_Admin', 'Gayathri'];
+            const protected = ['ESCTRIX_Admin', 'Gayathri'];
             tbody.innerHTML = list.map(u => `
                 <tr>
                     <td>${u.id}</td>

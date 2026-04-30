@@ -106,8 +106,8 @@ def run_test():
         page_admin.goto(URL)
         
         # Admin uses the normal login form
-        page_admin.fill("#auth-username", "HABIB_Admin")
-        page_admin.fill("#auth-password", "Habib@215")
+        page_admin.fill("#auth-username", "ESCTRIX_Admin")
+        page_admin.fill("#auth-password", "Esctrix@215")
         page_admin.click("#auth-submit-btn")
         
         # Verify Admin Dashboard

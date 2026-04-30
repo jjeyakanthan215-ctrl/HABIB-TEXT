@@ -25,7 +25,9 @@ class P2PConnection {
         this.configuration = {
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' },
+                { urls: 'stun:stun.cloudflare.com:3478' },
+                { urls: 'stun:global.stun.twilio.com:3478' }
             ]
         };
     }
@@ -368,7 +370,7 @@ class P2PConnection {
             stream.getTracks().forEach(track => peerObj.pc.addTrack(track, stream));
             const offer = await peerObj.pc.createOffer();
             await peerObj.pc.setLocalDescription(offer);
-            this.sendSignalingMessage('offer', offer, peerId);
+            this.sendSignalingMessage('offer', { sdp: offer, username: this.myUsername }, peerId);
             offers.push(peerId);
         }
         return offers.length > 0;
@@ -385,7 +387,7 @@ class P2PConnection {
             });
             const offer = await peerObj.pc.createOffer();
             await peerObj.pc.setLocalDescription(offer);
-            this.sendSignalingMessage('offer', offer, peerId);
+            this.sendSignalingMessage('offer', { sdp: offer, username: this.myUsername }, peerId);
         }
     }
 
@@ -414,7 +416,7 @@ class P2PConnection {
                 peerObj.pc.addTrack(newTrack);
                 const offer = await peerObj.pc.createOffer();
                 await peerObj.pc.setLocalDescription(offer);
-                this.sendSignalingMessage('offer', offer, peerId);
+                this.sendSignalingMessage('offer', { sdp: offer, username: this.myUsername }, peerId);
             }
         }
     }

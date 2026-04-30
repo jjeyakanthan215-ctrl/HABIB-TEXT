@@ -16,7 +16,7 @@ from connection_manager import manager
 logger = logging.getLogger(__name__)
 
 # --- Configuration ---
-ADMIN_USERS = os.environ.get("ADMIN_USERS", "HABIB_Admin,Gayathri").split(",")
+ADMIN_USERS = os.environ.get("ADMIN_USERS", "ESCTRIX_Admin,Gayathri").split(",")
 DEFAULT_PORT = int(os.environ.get("PORT", 8006))
 
 mdns_service = None
@@ -324,7 +324,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
 
             # ── Admin Auth ──
             elif message.get("type") == "admin_auth":
-                username     = message.get("data", {}).get("username", "HABIB_Admin")
+                username     = message.get("data", {}).get("username", "ESCTRIX_Admin")
                 provided_pwd = message.get("data", {}).get("password")
 
                 role = verify_user(username, provided_pwd)
