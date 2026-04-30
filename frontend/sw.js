@@ -97,3 +97,14 @@ self.addEventListener('sync', (event) => {
         );
     }
 });
+
+// ── Periodic Background Sync ──
+self.addEventListener('periodicsync', (event) => {
+    if (event.tag === 'esctrix-periodic-sync') {
+        event.waitUntil(
+            self.clients.matchAll().then((clients) => {
+                clients.forEach((client) => client.postMessage({ type: 'periodic-sync' }));
+            })
+        );
+    }
+});

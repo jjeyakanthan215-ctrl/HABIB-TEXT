@@ -8,12 +8,42 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#080c14",
   "theme_color": "#8b5cf6",
   "categories": ["social", "communication", "productivity"],
   "prefer_related_applications": false,
   "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "handle_links": "preferred",
+  "scope_extensions": [],
+  "share_target": {
+    "action": "/",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "text/plain": [".txt"],
+        "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"]
+      }
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+esctrix",
+      "url": "/?room=%s"
+    }
+  ],
   "shortcuts": [
     {
       "name": "Host a Space",
