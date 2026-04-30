@@ -547,11 +547,7 @@ const ESCTRIX = {
             div.dataset.id = id;
             this.bindMessageEvents(div, id);
 
-            if (senderName && type === 'received') {
-                div.innerHTML = `<strong class="sender-label">${senderName}</strong><br>${text}`;
-            } else {
-                div.textContent = text;
-            }
+            div.textContent = text;
 
             ESCTRIX.elements.messagesList.appendChild(div);
             ESCTRIX.elements.messagesList.scrollTop = ESCTRIX.elements.messagesList.scrollHeight;
@@ -945,7 +941,7 @@ const ESCTRIX = {
         addMessage(text, type, sender = '') {
             const div = document.createElement('div');
             div.className = `message ${type} incall-msg`;
-            div.innerHTML = sender ? `<strong>${sender}</strong>:<br> ${text}` : text;
+            div.textContent = text;
             ESCTRIX.elements.incallMessages.appendChild(div);
             ESCTRIX.elements.incallMessages.scrollTop = ESCTRIX.elements.incallMessages.scrollHeight;
         },
@@ -956,9 +952,14 @@ const ESCTRIX = {
         },
 
         addVideoTile(stream, peerId, username) {
-            this.removeVideoTile(peerId);
+            let tile = document.querySelector(`.video-tile[data-peer-id="${peerId}"]`);
+            if (tile) {
+                const v = tile.querySelector('video');
+                if (v && v.srcObject !== stream) v.srcObject = stream;
+                return;
+            }
             const grid = ESCTRIX.elements.groupVideoGrid;
-            const tile = document.createElement('div');
+            tile = document.createElement('div');
             tile.className = 'video-tile';
             tile.dataset.peerId = peerId;
             const v = document.createElement('video');
