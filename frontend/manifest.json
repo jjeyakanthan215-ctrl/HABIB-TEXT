@@ -1,6 +1,6 @@
 {
   "id": "/",
-  "name": "ESCTRIX",
+  "name": "ESCTRIX — Secure P2P Messenger",
   "short_name": "ESCTRIX",
   "description": "Secure peer-to-peer messaging, file transfer, and video calls. No central server. Full end-to-end encryption.",
   "lang": "en",
@@ -8,62 +8,11 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#080c14",
   "theme_color": "#8b5cf6",
-  "categories": ["social", "communication", "productivity"],
+  "categories": ["social", "communication"],
   "prefer_related_applications": false,
-  "iarc_rating_id": "e84b072d-71b3-4d3e-86ae-31a8ce4e53b7",
-  "launch_handler": {
-    "client_mode": "navigate-existing"
-  },
-  "handle_links": "preferred",
-  "scope_extensions": [],
-  "share_target": {
-    "action": "/",
-    "method": "GET",
-    "params": {
-      "title": "title",
-      "text": "text",
-      "url": "url"
-    }
-  },
-  "file_handlers": [
-    {
-      "action": "/",
-      "accept": {
-        "text/plain": [".txt"],
-        "image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp"]
-      }
-    }
-  ],
-  "protocol_handlers": [
-    {
-      "protocol": "web+esctrix",
-      "url": "/?room=%s"
-    }
-  ],
-  "shortcuts": [
-    {
-      "name": "Host a Space",
-      "short_name": "Host",
-      "description": "Quickly start hosting a secure P2P chat room",
-      "url": "/?action=host",
-      "icons": [
-        { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png" }
-      ]
-    },
-    {
-      "name": "Join a Space",
-      "short_name": "Join",
-      "description": "Quickly join an existing P2P chat room",
-      "url": "/?action=join",
-      "icons": [
-        { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png" }
-      ]
-    }
-  ],
   "icons": [
     {
       "src": "/static/icon-192.png",
@@ -104,6 +53,26 @@
       "type": "image/png",
       "form_factor": "narrow",
       "label": "ESCTRIX P2P Dashboard"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Host a Space",
+      "short_name": "Host",
+      "description": "Start hosting a secure P2P chat room",
+      "url": "/?action=host",
+      "icons": [
+        { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
+    },
+    {
+      "name": "Join a Space",
+      "short_name": "Join",
+      "description": "Join an existing P2P chat room",
+      "url": "/?action=join",
+      "icons": [
+        { "src": "/static/icon-192.png", "sizes": "192x192", "type": "image/png" }
+      ]
     }
   ]
 }
