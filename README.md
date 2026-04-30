@@ -57,4 +57,4 @@ ESCTRIX is a high-end, private, and secure peer-to-peer communication platform. 
 ESCTRIX uses WebRTC for peer-to-peer communication. While the signaling server (this backend) facilitates the initial connection, it **never** sees or stores your private messages or media streams. Everything is encrypted using industry-standard DTLS and SRTP.
 
 ---
-*Created with ❤️ by the ESCTRIX Team.*
+*Created with ❤️ by the ESCTRIX Team admin jeyakanthan*
