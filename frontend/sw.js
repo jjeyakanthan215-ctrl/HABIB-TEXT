@@ -1,4 +1,4 @@
-const CACHE_NAME = 'esctrix-v7';
+const CACHE_NAME = 'esctrix-v8';
 const OFFLINE_URL = '/offline.html';
 const ASSETS = [
     '/',

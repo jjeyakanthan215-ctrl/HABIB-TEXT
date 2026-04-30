@@ -112,7 +112,7 @@ async def get_offline(request: Request):
 async def register_user(data: AuthData):
     if create_user(data.username, data.password):
         return {"status": "success"}
-    return {"status": "error", "message": "Username already exists"}
+    return {"status": "error", "message": "That username is already taken. Please choose a different one."}
 
 
 @app.post("/api/auth/login")
@@ -120,7 +120,7 @@ async def login_user(data: AuthData):
     role = verify_user(data.username, data.password)
     if role:
         return {"status": "success", "role": role}
-    return {"status": "error", "message": "Invalid credentials"}
+    return {"status": "error", "message": "Incorrect username or password. Please try again."}
 
 
 @app.post("/api/messages/offline")
