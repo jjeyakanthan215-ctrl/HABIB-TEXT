@@ -359,6 +359,8 @@ const ESCTRIX = {
                     ESCTRIX.elements.tabHost.style.display = 'none';
                     ESCTRIX.elements.tabJoin.style.display = 'none';
 
+                    ESCTRIX.elements.messagesList.innerHTML = '<div class="message system"><i class="ph ph-lock-key" style="margin-right:4px"></i>End-to-end encrypted via WebRTC</div>';
+
                     ESCTRIX.state.activeRoomName = spaceName;
                     this.initP2P(null, pin, ESCTRIX.state.myUsername, spaceName);
                     history.pushState({ hosting: true }, '', location.href);
@@ -397,6 +399,7 @@ const ESCTRIX = {
             const pin = ESCTRIX.elements.joinPin.value.trim();
             if (spaceName) {
                 ESCTRIX.elements.authError.textContent = 'Connecting...';
+                ESCTRIX.elements.messagesList.innerHTML = '<div class="message system"><i class="ph ph-lock-key" style="margin-right:4px"></i>End-to-end encrypted via WebRTC</div>';
                 ESCTRIX.state.activeRoomName = spaceName;
                 this.initP2P(null, pin, ESCTRIX.state.myUsername, spaceName);
             } else {
