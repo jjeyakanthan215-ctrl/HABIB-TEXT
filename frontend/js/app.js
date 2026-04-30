@@ -761,6 +761,14 @@ const ESCTRIX = {
                 e.statusDot.classList.remove('connected');
                 e.statusText.textContent = 'Disconnected';
                 e.videoCallBtn.classList.add('hidden');
+                
+                if (e.authError && e.authError.textContent === 'Connecting...') {
+                    e.authError.textContent = 'Connection failed. Server might be sleeping, try again in 30s.';
+                }
+                if (e.hostError && e.hostError.textContent === 'Connecting...') {
+                    e.hostError.textContent = 'Connection failed. Server might be sleeping, try again in 30s.';
+                }
+
                 this.stopPingLoop();
                 ESCTRIX.call.end();
             } else if (state === 'failed_auth') {

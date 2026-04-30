@@ -68,6 +68,7 @@ class P2PConnection {
 
         this.ws.onclose = () => {
             console.log('[Signaling] Closed');
+            this.onConnectionStateChange('disconnected');
         };
     }
 
