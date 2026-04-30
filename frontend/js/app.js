@@ -417,11 +417,11 @@ const ESCTRIX = {
         async sendOfflineMessage(text, msgId) {
             const recipient = ESCTRIX.state.p2p?.peerName || ESCTRIX.state.activeRoomName;
             if (!recipient) return;
-            
+
             this.addMessage(text, 'sent', '', ESCTRIX.state.vanishMode, msgId);
             const msgDiv = document.querySelector(`.message[data-id="${msgId}"]`);
             if (msgDiv) msgDiv.style.opacity = '0.6';
-            
+
             try {
                 const res = await fetch('/api/messages/offline', {
                     method: 'POST',
@@ -922,7 +922,7 @@ const ESCTRIX = {
                     ESCTRIX.elements.localVideo.srcObject = ESCTRIX.state.screenStream;
                     ESCTRIX.state.isScreenSharing = true;
                     ESCTRIX.elements.screenShareBtn.classList.add('muted-active');
-                } catch {}
+                } catch { }
             } else {
                 ESCTRIX.state.isScreenSharing = false;
                 ESCTRIX.elements.screenShareBtn.classList.remove('muted-active');
@@ -1032,7 +1032,7 @@ const ESCTRIX = {
 
         renderUsers(list) {
             const tbody = ESCTRIX.elements.adminUsersTbody;
-            const protected = ['ESCTRIX_Admin', 'Gayathri'];
+            const protected = ['HABIB_Admin', 'Gayathri'];
             tbody.innerHTML = list.map(u => `
                 <tr>
                     <td>${u.id}</td>

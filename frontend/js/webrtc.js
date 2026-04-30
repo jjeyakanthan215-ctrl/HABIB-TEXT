@@ -362,16 +362,18 @@ class P2PConnection {
     /**
      * Add a local media stream to ALL peer connections and renegotiate.
      */
-    async startMedia(stream) {
+    async startMedia(stream, negotiate = true) {
         const offers = [];
         for (const [peerId, peerObj] of this.peers) {
             // Remove old senders first
             peerObj.pc.getSenders().forEach(s => peerObj.pc.removeTrack(s));
             stream.getTracks().forEach(track => peerObj.pc.addTrack(track, stream));
-            const offer = await peerObj.pc.createOffer();
-            await peerObj.pc.setLocalDescription(offer);
-            this.sendSignalingMessage('offer', { sdp: offer, username: this.myUsername }, peerId);
-            offers.push(peerId);
+            if (negotiate) {
+                const offer = await peerObj.pc.createOffer();
+                await peerObj.pc.setLocalDescription(offer);
+                this.sendSignalingMessage('offer', { sdp: offer, username: this.myUsername }, peerId);
+                offers.push(peerId);
+            }
         }
         return offers.length > 0;
     }
