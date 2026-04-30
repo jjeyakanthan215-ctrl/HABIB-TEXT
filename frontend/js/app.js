@@ -548,7 +548,7 @@ const ESCTRIX = {
             this.bindMessageEvents(div, id);
 
             if (senderName && type === 'received') {
-                div.innerHTML = `<strong class="sender-label">${senderName}</strong>${text}`;
+                div.innerHTML = `<strong class="sender-label">${senderName}</strong><br>${text}`;
             } else {
                 div.textContent = text;
             }
@@ -945,7 +945,7 @@ const ESCTRIX = {
         addMessage(text, type, sender = '') {
             const div = document.createElement('div');
             div.className = `message ${type} incall-msg`;
-            div.innerHTML = sender ? `<strong>${sender}</strong>: ${text}` : text;
+            div.innerHTML = sender ? `<strong>${sender}</strong>:<br> ${text}` : text;
             ESCTRIX.elements.incallMessages.appendChild(div);
             ESCTRIX.elements.incallMessages.scrollTop = ESCTRIX.elements.incallMessages.scrollHeight;
         },
