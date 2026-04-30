@@ -348,6 +348,11 @@ body {
     box-shadow: 0 0 8px var(--success);
 }
 
+.dot.online {
+    background: #06d6a0;
+    box-shadow: 0 0 8px #06d6a0;
+}
+
 /* ── Screens ── */
 .app-content {
     flex: 1;

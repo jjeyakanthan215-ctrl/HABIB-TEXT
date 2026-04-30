@@ -5,7 +5,7 @@ from fastapi import WebSocket
 
 logger = logging.getLogger(__name__)
 
-MAX_ROOM_CAPACITY = 4  # Support up to 4 users for group calls
+MAX_ROOM_CAPACITY = 2  # Strict 1-to-1 P2P calls only
 
 
 class ConnectionManager:

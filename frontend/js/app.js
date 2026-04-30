@@ -150,6 +150,26 @@ const ESCTRIX = {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('/sw.js').catch(err => console.error('SW registration failed', err));
         }
+        // Real-time online/offline detection
+        this.updateNetworkStatus();
+        window.addEventListener('online', () => this.updateNetworkStatus());
+        window.addEventListener('offline', () => this.updateNetworkStatus());
+    },
+
+    updateNetworkStatus() {
+        const e = this.elements;
+        if (!e.statusDot || !e.statusText) return;
+        if (navigator.onLine) {
+            // Only show 'Online' if we're not in a P2P session
+            if (!this.state.p2p || !this.state.p2p.isConnected()) {
+                e.statusDot.classList.remove('connected');
+                e.statusDot.classList.add('online');
+                e.statusText.textContent = 'Online';
+            }
+        } else {
+            e.statusDot.classList.remove('connected', 'online');
+            e.statusText.textContent = 'Offline';
+        }
     },
 
     initHistory() {
@@ -722,8 +742,7 @@ const ESCTRIX = {
             const e = ESCTRIX.elements;
             if (state === 'connected') {
                 e.statusDot.classList.add('connected');
-                const cnt = ESCTRIX.state.p2p?.getPeerCount() || 1;
-                e.statusText.textContent = cnt > 1 ? `Group (${cnt} peers)` : `Connected to ${data?.username || 'Peer'}`;
+                e.statusText.textContent = `Connected to ${data?.username || 'Peer'}`;
                 if (!e.chatScreen.classList.contains('active')) ESCTRIX.navigation.showScreen(e.chatScreen);
                 e.videoCallBtn.classList.remove('hidden');
                 if (data?.username) this.addMessage(`${data.username} joined the room. 🎉`, 'system');
@@ -733,16 +752,11 @@ const ESCTRIX = {
                 if (data?.username) this.addMessage(`${data.username} is connecting...`, 'system');
             } else if (state === 'peer_left') {
                 if (data?.clientId) ESCTRIX.call.removeVideoTile(data.clientId);
-                const cnt = ESCTRIX.state.p2p?.getPeerCount() || 0;
-                if (cnt > 0) {
-                    e.statusText.textContent = `Group (${cnt} peers)`;
-                } else {
-                    e.statusDot.classList.remove('connected');
-                    e.statusText.textContent = 'Peer Offline';
-                    e.videoCallBtn.classList.add('hidden');
-                    ESCTRIX.call.end();
-                }
-                this.addMessage('A peer has left the room. You can send offline messages.', 'system');
+                e.statusDot.classList.remove('connected');
+                e.statusText.textContent = 'Peer Disconnected';
+                e.videoCallBtn.classList.add('hidden');
+                ESCTRIX.call.end();
+                this.addMessage('Your peer has left the room. You can send offline messages.', 'system');
             } else if (state === 'disconnected') {
                 e.statusDot.classList.remove('connected');
                 e.statusText.textContent = 'Disconnected';

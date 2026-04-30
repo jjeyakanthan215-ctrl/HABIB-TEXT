@@ -292,7 +292,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                         await websocket.send_text(json.dumps({
                             "type": "auth_fail",
                             "reason": "full",
-                            "message": "This room is full (max 4 people). Please try a different space."
+                            "message": "This space already has an active session. Only 2 members are allowed per space."
                         }))
                         continue
 
