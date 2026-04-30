@@ -1,4 +1,4 @@
-const CACHE_NAME = 'esctrix-v10';
+const CACHE_NAME = 'esctrix-v11';
 const OFFLINE_URL = '/offline.html';
 const ASSETS = [
     '/',
@@ -10,7 +10,10 @@ const ASSETS = [
     '/static/js/webrtc.js',
     '/static/logo.png',
     '/static/icon-192.png',
-    '/static/icon-512.png'
+    '/static/icon-512.png',
+    '/static/icon-192-maskable.png',
+    '/static/icon-512-maskable.png',
+    '/static/screenshot_wide.png'
 ];
 
 // ── Install: pre-cache all core assets ──
